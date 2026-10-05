@@ -1,0 +1,11 @@
+registro-proyecto/
+├── index.html
+├── style.css
+├── script.js
+├── backend/
+│   ├── config.php
+│   ├── registrar.php
+│   ├── enviar-correo.php
+│   └── generar-qr.php
+└── vendor/
+    └── (bibliotecas PHP)

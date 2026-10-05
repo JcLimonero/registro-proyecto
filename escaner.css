@@ -1,0 +1,383 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.stats-panel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 15px;
+    border-radius: 15px;
+    color: white;
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: default;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.total {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-card.confirmed {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.stat-card.pending {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+}
+
+.stat-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    opacity: 0.95;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value.updated {
+    animation: pulseValue 0.5s ease;
+}
+
+@keyframes pulseValue {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #fff; }
+    100% { transform: scale(1); }
+}
+
+@media (max-width: 600px) {
+    .stats-panel {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .stat-card {
+        padding: 12px 15px;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .stat-icon {
+        font-size: 1.5rem;
+    }
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 40px;
+    max-width: 700px;
+    width: 100%;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    color: #333;
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.header p {
+    color: #666;
+    font-size: 1rem;
+}
+
+.input-container {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+#ticketInput {
+    width: 100%;
+    padding: 25px 70px 25px 25px;
+    font-size: 1.3rem;
+    border: 3px solid #667eea;
+    border-radius: 15px;
+    outline: none;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: 1px;
+    background: #f8f9ff;
+    transition: all 0.3s;
+}
+
+#ticketInput:focus {
+    border-color: #764ba2;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+    background: white;
+}
+
+#ticketInput::placeholder {
+    color: #999;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.scan-icon {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
+    50% { opacity: 0.6; transform: translateY(-50%) scale(1.1); }
+}
+
+.scan-result {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    transition: all 0.3s;
+}
+
+.scan-result.success {
+    background: #d4edda;
+    color: #155724;
+    border: 2px solid #28a745;
+}
+
+.scan-result.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 2px solid #dc3545;
+}
+
+.scan-result.info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 2px solid #17a2b8;
+}
+
+.scan-result.warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 2px solid #ffc107;
+}
+
+.recent-scans {
+    border-top: 2px solid #eee;
+    padding-top: 20px;
+}
+
+.recent-scans h3 {
+    color: #555;
+    margin-bottom: 15px;
+    font-size: 1rem;
+}
+
+.recent-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.no-recent {
+    color: #999;
+    text-align: center;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.recent-item {
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.recent-item.success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.recent-item.warning {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.recent-item.error {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+}
+
+.recent-item .nombre {
+    font-weight: 600;
+    color: #333;
+}
+
+.recent-item .hora {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.confirm-section {
+    text-align: center;
+    animation: fadeIn 0.4s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.confirm-card {
+    padding: 40px 30px;
+    border-radius: 20px;
+    margin-bottom: 25px;
+}
+
+.confirm-card.success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.confirm-card.error {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.confirm-card.warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: white;
+}
+
+.confirm-icon {
+    font-size: 6rem;
+    margin-bottom: 20px;
+    line-height: 1;
+}
+
+.confirm-card h2 {
+    font-size: 2.2rem;
+    margin-bottom: 15px;
+}
+
+.confirm-card p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+}
+
+.info-box {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    text-align: left;
+}
+
+.info-box .info-row {
+    padding: 12px 0;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    font-size: 1rem;
+}
+
+.info-box .info-row:last-child {
+    border-bottom: none;
+}
+
+.info-box .info-row strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+.info-box .info-row span {
+    color: #212529;
+    font-weight: 500;
+}
+
+.btn-new-scan {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-new-scan:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 25px;
+    }
+    
+    .header h1 {
+        font-size: 1.5rem;
+    }
+    
+    #ticketInput {
+        font-size: 1rem;
+        padding: 20px 60px 20px 20px;
+    }
+    
+    .confirm-icon {
+        font-size: 4rem;
+    }
+    
+    .confirm-card h2 {
+        font-size: 1.5rem;
+    }
+	
+}

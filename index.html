@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="form-containe
+		0" id="formContainer">
+            <h1>Registro de Usuario</h1>
+            <form id="registroForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre Completo</label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="numEmpleado">Número de Empleado</label>
+                    <input type="text" id="numEmpleado" name="numEmpleado" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="agencia">Agencia</label>
+                    <input type="text" id="agencia" name="agencia" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="puesto">Puesto</label>
+                    <input type="text" id="puesto" name="puesto" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="area">Área</label>
+                    <input type="text" id="area" name="area" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="correo">Correo Electrónico</label>
+                    <input type="email" id="correo" name="correo" required>
+                </div>
+
+                <button type="submit" class="btn-submit">Registrar</button>
+            </form>
+        </div>
+
+        <div class="confirmation-container" id="confirmationContainer" style="display: none;">
+            <h1>¡Registro Exitoso!</h1>
+            <div class="confirmation-card">
+                <div class="ticket-info">
+                    <h3>ID Ticket: <span id="ticketId"></span></h3>
+                    <p><strong>Fecha de Registro:</strong> <span id="fechaRegistro"></span></p>
+                    <p><strong>Nombre:</strong> <span id="confirmNombre"></span></p>
+                    <p><strong>Número de Empleado:</strong> <span id="confirmNumEmpleado"></span></p>
+                    <p><strong>Agencia:</strong> <span id="confirmAgencia"></span></p>
+                    <p><strong>Puesto:</strong> <span id="confirmPuesto"></span></p>
+                    <p><strong>Área:</strong> <span id="confirmArea"></span></p>
+                    <p><strong>Correo:</strong> <span id="confirmCorreo"></span></p>
+                </div>
+                
+                <div class="qr-container">
+                    <div id="qrCode"></div>
+                    <button id="descargarQR" class="btn-download">Descargar QR</button>
+                </div>
+            </div>
+            <button id="nuevoRegistro" class="btn-new">Nuevo Registro</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

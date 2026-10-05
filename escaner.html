@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Entrada - Lector QR</title>
+    <link rel="stylesheet" href="escaner.css">
+</head>
+<body>
+    <div class="container">
+        <div class="stats-panel">
+            <div class="stat-card total">
+                <div class="stat-icon">📊</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Registrados</div>
+                </div>
+            </div>
+            <div class="stat-card confirmed">
+                <div class="stat-icon">✅</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="statConfirmados">0</div>
+                    <div class="stat-label">Confirmados</div>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="statPendientes">0</div>
+                    <div class="stat-label">Por Confirmar</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanSection" class="scan-section">
+            <div class="header">
+                <h1>📷 Confirmar Entrada</h1>
+                <p>Escanea el código QR con el lector</p>
+            </div>
+
+            <div class="input-container">
+                <input 
+                    type="text" 
+                    id="ticketInput" 
+                    placeholder="Esperando escaneo..."
+                    autofocus
+                    autocomplete="off"
+                >
+                <div class="scan-icon">🎫</div>
+            </div>
+
+            <div id="scanResult" class="scan-result info">
+                ✅ Listo para escanear. Pasa el código QR por el lector.
+            </div>
+
+            <div class="recent-scans">
+                <h3>📋 Últimos escaneos</h3>
+                <div id="recentList" class="recent-list">
+                    <p class="no-recent">Aún no hay escaneos en esta sesión</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="confirmSection" class="confirm-section" style="display: none;">
+            <div id="confirmContent"></div>
+        </div>
+    </div>
+
+    <script src="escaner.js"></script>
+</body>
+</html>
