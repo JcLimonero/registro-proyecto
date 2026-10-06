@@ -1070,11 +1070,14 @@ if ($autenticado && $vista === 'tabla') {
             .cat-alta-form { grid-template-columns: 1fr auto; }
             .cat-alta-evento { grid-template-columns: minmax(140px, 1.4fr) minmax(190px, 1fr) minmax(190px, 1fr) auto; }
             .catalogo table.cat-eventos { table-layout: fixed; min-width: 0; }
-            .catalogo table.cat-eventos .col-nombre { width: 16%; }
+            .catalogo table.cat-eventos .col-nombre { width: 14%; }
             .catalogo table.cat-eventos .col-fecha { width: 24%; }
-            .catalogo table.cat-eventos .col-estado { width: 12%; }
-            .catalogo table.cat-eventos .col-usos { width: 8%; }
-            .catalogo table.cat-eventos .col-acciones { width: 16%; }
+            .catalogo table.cat-eventos .col-estado { width: 10%; }
+            .catalogo table.cat-eventos .col-usos { width: 14%; }
+            .catalogo table.cat-eventos .col-acciones { width: 14%; }
+            .catalogo table.cat-eventos th,
+            .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
+            .catalogo table.cat-eventos th { white-space: normal; letter-spacing: 0.02em; line-height: 1.2; }
             .catalogo table.cat-eventos input[type=datetime-local] { min-width: 0; font-size: 13px; padding: 0 6px; }
             .catalogo table.cat-eventos .cat-acciones { white-space: normal; }
         }
