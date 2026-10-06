@@ -477,7 +477,15 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
         <div class="tarjeta vacio">Aún no hay eventos. Sin un evento vigente, el registro público permanece cerrado.</div>
     <?php else: ?>
     <div class="tarjeta tabla-wrap cat-tabla-wrap">
-        <table class="cat-tabla">
+        <table class="cat-tabla cat-eventos">
+            <colgroup>
+                <col class="col-nombre">
+                <col class="col-fecha">
+                <col class="col-fecha">
+                <col class="col-estado">
+                <col class="col-usos">
+                <col class="col-acciones">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Nombre</th>
@@ -1061,6 +1069,14 @@ if ($autenticado && $vista === 'tabla') {
         @media (min-width: 768px) {
             .cat-alta-form { grid-template-columns: 1fr auto; }
             .cat-alta-evento { grid-template-columns: minmax(140px, 1.4fr) minmax(190px, 1fr) minmax(190px, 1fr) auto; }
+            .catalogo table.cat-eventos { table-layout: fixed; min-width: 0; }
+            .catalogo table.cat-eventos .col-nombre { width: 16%; }
+            .catalogo table.cat-eventos .col-fecha { width: 24%; }
+            .catalogo table.cat-eventos .col-estado { width: 12%; }
+            .catalogo table.cat-eventos .col-usos { width: 8%; }
+            .catalogo table.cat-eventos .col-acciones { width: 16%; }
+            .catalogo table.cat-eventos input[type=datetime-local] { min-width: 0; font-size: 13px; padding: 0 6px; }
+            .catalogo table.cat-eventos .cat-acciones { white-space: normal; }
         }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
         .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }
