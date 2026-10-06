@@ -347,86 +347,165 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
     }
 }
 
-/** Tarjetas de agencias o áreas: alta arriba y una tarjeta editable por elemento. */
-function renderCatalogoSimple($tipo, array $filas, $csrf) {
-    list(, $singular, $plural, , $max) = CATALOGOS[$tipo];
+const CATALOGO_POR_PAGINA = 10;
+
+/** Página pedida en el query, mínimo 1. */
+function paginaPedida() {
+    $p = (int) ($_GET['p'] ?? 1);
+    return $p < 1 ? 1 : $p;
+}
+
+/** Recorta la lista del catálogo a la página actual. */
+function paginarCatalogo(array $filas) {
+    $total = count($filas);
+    $paginas = max(1, (int) ceil($total / CATALOGO_POR_PAGINA));
+    $pagina = min(paginaPedida(), $paginas);
+    $desde = ($pagina - 1) * CATALOGO_POR_PAGINA;
+    return [
+        'filas' => array_slice($filas, $desde, CATALOGO_POR_PAGINA),
+        'pagina' => $pagina,
+        'paginas' => $paginas,
+        'total' => $total,
+        'desde' => $total ? $desde + 1 : 0,
+        'hasta' => min($desde + CATALOGO_POR_PAGINA, $total),
+    ];
+}
+
+/** Enlaces anterior / siguiente, conservando la vista. */
+function renderPaginacion($vista, array $pag) {
+    if ($pag['total'] === 0) {
+        return;
+    }
+    $base = 'registros.php?vista=' . rawurlencode($vista);
     ?>
-    <section class="tarjeta cat-bloque">
+    <nav class="paginacion" aria-label="Páginas">
+        <?php if ($pag['pagina'] > 1): ?>
+            <a class="btn btn-sec" href="<?= h($base . '&p=' . ($pag['pagina'] - 1)) ?>">Anterior</a>
+        <?php else: ?>
+            <span class="btn btn-sec pag-off">Anterior</span>
+        <?php endif; ?>
+        <span class="pag-info">Página <?= (int) $pag['pagina'] ?> de <?= (int) $pag['paginas'] ?>
+            <span class="sec">(<?= (int) $pag['desde'] ?>–<?= (int) $pag['hasta'] ?> de <?= (int) $pag['total'] ?>)</span></span>
+        <?php if ($pag['pagina'] < $pag['paginas']): ?>
+            <a class="btn btn-sec" href="<?= h($base . '&p=' . ($pag['pagina'] + 1)) ?>">Siguiente</a>
+        <?php else: ?>
+            <span class="btn btn-sec pag-off">Siguiente</span>
+        <?php endif; ?>
+    </nav>
+    <?php
+}
+
+/** Tabla de agencias o áreas: alta arriba, editar y eliminar en cada fila. */
+function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
+    list(, $singular, $plural, $vista, $max) = CATALOGOS[$tipo];
+    $accionVista = 'registros.php?vista=' . rawurlencode($vista) . '&p=' . (int) $pag['pagina'];
+    ?>
+    <section class="tarjeta cat-alta">
         <h2>Nueva <?= h($singular) ?></h2>
-        <form method="post" action="registros.php?vista=<?= h(CATALOGOS[$tipo][3]) ?>" class="cat-form">
+        <form method="post" action="registros.php?vista=<?= h($vista) ?>" class="cat-alta-form">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
             <label class="etiqueta sec" for="nuevo-<?= h($tipo) ?>">Nombre</label>
             <input type="text" id="nuevo-<?= h($tipo) ?>" name="nombre" maxlength="<?= (int) $max ?>" required>
             <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>">Agregar</button>
         </form>
     </section>
-    <?php if (!$filas): ?>
+    <?php if (!$pag['total']): ?>
         <div class="tarjeta vacio">Aún no hay <?= h($plural) ?>.</div>
     <?php else: ?>
-    <ul class="cat-lista">
-        <?php foreach ($filas as $f): ?>
-        <li class="tarjeta cat-bloque">
-            <form method="post" action="registros.php?vista=<?= h(CATALOGOS[$tipo][3]) ?>" class="cat-form">
-                <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-                <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
-                <label class="etiqueta sec" for="<?= h($tipo) ?>-<?= (int) $f['id'] ?>">Nombre</label>
-                <input type="text" id="<?= h($tipo) ?>-<?= (int) $f['id'] ?>" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= (int) $max ?>" required>
-                <p class="sec cat-uso"><?= (int) $f['usos'] ?> registro<?= (int) $f['usos'] === 1 ? '' : 's' ?></p>
-                <div class="cat-botones">
-                    <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>">Guardar</button>
-                    <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_<?= h($tipo) ?>" formnovalidate
-                            onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);">Eliminar</button>
-                </div>
-            </form>
-        </li>
-        <?php endforeach; ?>
-    </ul>
+    <div class="tarjeta tabla-wrap cat-tabla-wrap">
+        <table class="cat-tabla">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Registros</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($filas as $f): $i = (int) $f['id']; ?>
+                <tr>
+                    <td>
+                        <form id="<?= h($tipo) ?>-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" class="cat-fila">
+                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                            <input type="hidden" name="id" value="<?= $i ?>">
+                            <input type="hidden" name="p" value="<?= (int) $pag['pagina'] ?>">
+                            <input type="text" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= (int) $max ?>" required aria-label="Nombre">
+                        </form>
+                    </td>
+                    <td class="cat-usos"><?= (int) $f['usos'] ?></td>
+                    <td class="cat-acciones">
+                        <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>">Guardar</button>
+                        <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>" formnovalidate
+                                onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);">Eliminar</button>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php renderPaginacion($vista, $pag); ?>
+    </div>
     <?php endif;
 }
 
-/** Tarjetas de eventos: alta arriba y una tarjeta editable por evento. */
-function renderEventos(array $filas, $csrf, $ahora) {
+/** Tabla de eventos: alta arriba, editar y eliminar en cada fila. */
+function renderEventos(array $filas, $csrf, $ahora, array $pag) {
     $etiquetas = ['vigente' => 'Vigente', 'proximo' => 'Próximo', 'finalizado' => 'Finalizado'];
+    $accionVista = 'registros.php?vista=eventos&p=' . (int) $pag['pagina'];
     ?>
-    <section class="tarjeta cat-bloque">
+    <section class="tarjeta cat-alta">
         <h2>Nuevo evento</h2>
-        <form method="post" action="registros.php?vista=eventos" class="cat-form">
+        <form method="post" action="registros.php?vista=eventos" class="cat-alta-form cat-alta-evento">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
             <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
             <input type="text" id="nuevo-evento" name="nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
-            <label class="etiqueta sec" for="nuevo-inicio">Inicio (hora de México)</label>
+            <label class="etiqueta sec" for="nuevo-inicio">Inicio</label>
             <input type="datetime-local" id="nuevo-inicio" name="fecha_inicio" required>
-            <label class="etiqueta sec" for="nuevo-fin">Fin (hora de México)</label>
+            <label class="etiqueta sec" for="nuevo-fin">Fin</label>
             <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
             <button type="submit" class="btn-primario" name="accion" value="guardar_evento">Agregar</button>
         </form>
     </section>
-    <?php if (!$filas): ?>
+    <?php if (!$pag['total']): ?>
         <div class="tarjeta vacio">Aún no hay eventos. Sin un evento vigente, el registro público permanece cerrado.</div>
     <?php else: ?>
-    <ul class="cat-lista">
-        <?php foreach ($filas as $f): $estado = estadoEvento($f, $ahora); $i = (int) $f['id']; ?>
-        <li class="tarjeta cat-bloque">
-            <form method="post" action="registros.php?vista=eventos" class="cat-form">
-                <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-                <input type="hidden" name="id" value="<?= $i ?>">
-                <p class="cat-estado"><span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span>
-                    <span class="sec"><?= (int) $f['usos'] ?> registro<?= (int) $f['usos'] === 1 ? '' : 's' ?></span></p>
-                <label class="etiqueta sec" for="evento-<?= $i ?>">Nombre</label>
-                <input type="text" id="evento-<?= $i ?>" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
-                <label class="etiqueta sec" for="inicio-<?= $i ?>">Inicio (hora de México)</label>
-                <input type="datetime-local" id="inicio-<?= $i ?>" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required>
-                <label class="etiqueta sec" for="fin-<?= $i ?>">Fin (hora de México)</label>
-                <input type="datetime-local" id="fin-<?= $i ?>" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required>
-                <div class="cat-botones">
-                    <button type="submit" class="btn-primario" name="accion" value="guardar_evento">Guardar</button>
-                    <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_evento" formnovalidate
-                            onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);">Eliminar</button>
-                </div>
-            </form>
-        </li>
-        <?php endforeach; ?>
-    </ul>
+    <div class="tarjeta tabla-wrap cat-tabla-wrap">
+        <table class="cat-tabla">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th>Estado</th>
+                    <th>Registros</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($filas as $f): $estado = estadoEvento($f, $ahora); $i = (int) $f['id']; ?>
+                <tr>
+                    <td>
+                        <form id="evento-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" class="cat-fila">
+                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                            <input type="hidden" name="id" value="<?= $i ?>">
+                            <input type="hidden" name="p" value="<?= (int) $pag['pagina'] ?>">
+                            <input type="text" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required aria-label="Nombre">
+                        </form>
+                    </td>
+                    <td><input type="datetime-local" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required form="evento-<?= $i ?>" aria-label="Inicio"></td>
+                    <td><input type="datetime-local" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required form="evento-<?= $i ?>" aria-label="Fin"></td>
+                    <td><span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span></td>
+                    <td class="cat-usos"><?= (int) $f['usos'] ?></td>
+                    <td class="cat-acciones">
+                        <button type="submit" class="btn-primario" name="accion" value="guardar_evento" form="evento-<?= $i ?>">Guardar</button>
+                        <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_evento" form="evento-<?= $i ?>" formnovalidate
+                                onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);">Eliminar</button>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php renderPaginacion('eventos', $pag); ?>
+    </div>
     <?php endif;
 }
 
@@ -465,7 +544,15 @@ function responderTexto($codigo, $texto) {
 /** Guarda un mensaje para mostrarlo tras la redirección y vuelve a la tabla. */
 function volverConMensaje($tipo, $texto, $vista = null) {
     $_SESSION['flash'] = ['tipo' => $tipo, 'texto' => $texto];
-    header('Location: registros.php' . ($vista ? '?vista=' . rawurlencode($vista) : ''));
+    $qs = [];
+    if ($vista) {
+        $qs['vista'] = $vista;
+    }
+    $p = (int) ($_POST['p'] ?? 0);
+    if ($vista && $p > 1) {
+        $qs['p'] = (string) $p;
+    }
+    header('Location: registros.php' . ($qs ? '?' . http_build_query($qs) : ''));
     exit;
 }
 
@@ -602,6 +689,7 @@ const TITULOS_VISTA = ['tabla' => 'Registros', 'escanear' => 'Escanear', 'agenci
 
 $filas = [];
 $errorDatos = null;
+$pagCatalogo = null;
 $ahoraAdmin = date('Y-m-d H:i:s');
 
 // Catálogos (agencias, áreas, eventos): lista con cuántos registros usan cada elemento.
@@ -625,6 +713,8 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
                         (SELECT COUNT(*) FROM registros r WHERE r.area = a.nombre) AS usos
                     FROM areas a ORDER BY a.nombre')->fetchAll(PDO::FETCH_ASSOC);
             }
+            $pagCatalogo = paginarCatalogo($filas);
+            $filas = $pagCatalogo['filas'];
         } catch (PDOException $e) {
             error_log('registros.php: ' . $e->getMessage());
             $errorDatos = 'No se pudo leer la información.';
@@ -930,9 +1020,42 @@ if ($autenticado && $vista === 'tabla') {
         .tab:not([aria-current="page"]):hover { background: #f4f5f7; }
         #vistaEscaner { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); padding: 16px; }
         /* Administración de agencias, áreas y eventos */
-        .catalogo { max-width: 640px; margin: 0 auto; }
-        .cat-lista { list-style: none; margin: 0; padding: 0; }
-        .cat-bloque { padding: 20px 16px; margin-bottom: 12px; }
+        .catalogo { max-width: 1100px; margin: 0 auto; }
+        .cat-alta { padding: 16px; margin-bottom: 12px; }
+        .cat-alta h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
+        .cat-alta-form { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: end; }
+        .cat-alta-form label { margin: 0; }
+        .cat-alta-evento { grid-template-columns: 1fr; }
+        .cat-tabla-wrap { padding: 0; overflow-x: auto; }
+        .catalogo table.cat-tabla { display: table; width: 100%; min-width: 640px; border-collapse: collapse; }
+        .catalogo table.cat-tabla thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
+        .catalogo table.cat-tabla tbody { display: table-row-group; }
+        .catalogo table.cat-tabla tr { display: table-row; background: transparent; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
+        .catalogo table.cat-tabla th,
+        .catalogo table.cat-tabla td { display: table-cell; width: auto; text-align: left; vertical-align: middle; padding: 10px 12px; border-bottom: 1px solid #eef0f3; }
+        .catalogo table.cat-tabla th {
+            font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; border-bottom: 1px solid #adb5bd;
+        }
+        .catalogo table.cat-tabla td::before { display: none; content: none; }
+        .catalogo .cat-fila { margin: 0; }
+        .catalogo input[type=text],
+        .catalogo input[type=datetime-local] {
+            width: 100%; min-width: 140px; height: 40px; border: 0; background: #eef0f3; padding: 0 10px;
+            font: inherit; font-size: 16px; color: #212529;
+        }
+        .catalogo .cat-usos { text-align: center; white-space: nowrap; }
+        .catalogo .cat-acciones { white-space: nowrap; }
+        .catalogo .cat-acciones .btn-primario,
+        .catalogo .cat-acciones .btn-sec { width: auto; height: 36px; padding: 0 12px; margin-right: 6px; }
+        .paginacion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px; }
+        .pag-info { font-size: 13px; color: #212529; }
+        .pag-off { opacity: 0.4; pointer-events: none; }
+        @media (min-width: 768px) {
+            .cat-alta-form { grid-template-columns: 1fr auto; }
+            .cat-alta-form label { grid-column: 1 / -1; }
+            .cat-alta-evento { grid-template-columns: 1.4fr 1fr 1fr auto; }
+            .cat-alta-evento label { grid-column: auto; }
+        }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
         .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }
         .cat-form label { margin-top: 10px; }
@@ -1095,9 +1218,9 @@ if ($autenticado && $vista === 'tabla') {
             <?php if ($errorDatos): ?>
                 <div class="tarjeta aviso" role="alert"><?= h($errorDatos) ?></div>
             <?php elseif ($vista === 'eventos'): ?>
-                <?php renderEventos($filas, $csrf, $ahoraAdmin); ?>
+                <?php renderEventos($filas, $csrf, $ahoraAdmin, $pagCatalogo); ?>
             <?php else: ?>
-                <?php renderCatalogoSimple($vista === 'agencias' ? 'agencia' : 'area', $filas, $csrf); ?>
+                <?php renderCatalogoSimple($vista === 'agencias' ? 'agencia' : 'area', $filas, $csrf, $pagCatalogo); ?>
             <?php endif; ?>
         </div>
         <?php else: ?>
