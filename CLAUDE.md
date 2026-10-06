@@ -17,5 +17,7 @@ App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un
 - `validar-asistencia.php` (POST JSON `{idTicket}`): marca la entrada.
 - `estadisticas.php` (GET): totales para el escáner.
 
+- `/registros.php`: tabla de registros y descarga Excel (`?descargar=1`, SpreadsheetML `.xls`), protegida por sesión; contraseña por `ADMIN_PASSWORD` (default en `backend/config.php`).
+
 ## Secretos
 La cuenta SMTP de eventos está como valor por defecto en `backend/config.php` en esta rama, hasta que se rote. Un `.env` (ignorado por git) o las variables de entorno la sustituyen si están definidas. El escáner no tiene autenticación (decisión actual).

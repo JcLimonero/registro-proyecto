@@ -41,6 +41,9 @@ define('DB_USER', envOr('DB_USER', 'root'));
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
 define('DB_NAME', envOr('DB_NAME', 'registro_proyecto'));
 
+// Contraseña de la pantalla de registros (/registros.php)
+define('ADMIN_PASSWORD', envOr('ADMIN_PASSWORD', 'Vanguardia123'));
+
 define('SMTP_HOST', envOr('SMTP_HOST', 'smtp.gmail.com'));
 define('SMTP_PORT', (int) envOr('SMTP_PORT', 587));
 define('SMTP_USER', envOr('SMTP_USER', 'eventosvgd@gmail.com'));

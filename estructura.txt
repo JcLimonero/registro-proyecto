@@ -5,6 +5,7 @@ registro-proyecto/
 ├── escaner.html            # Pantalla del escáner QR (entrada al evento)
 ├── escaner.js
 ├── escaner.css
+├── registros.php           # Tabla de registros protegida con contraseña + descarga Excel (.xls)
 ├── backend/
 │   ├── config.php          # Config por entorno (.env) y esquema MySQL
 │   ├── registrar.php       # Guarda el registro
