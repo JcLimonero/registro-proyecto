@@ -404,8 +404,10 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
         <h2>Nueva <?= h($singular) ?></h2>
         <form method="post" action="registros.php?vista=<?= h($vista) ?>" class="cat-alta-form">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-            <label class="etiqueta sec" for="nuevo-<?= h($tipo) ?>">Nombre</label>
-            <input type="text" id="nuevo-<?= h($tipo) ?>" name="nombre" maxlength="<?= (int) $max ?>" required>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-<?= h($tipo) ?>">Nombre</label>
+                <input type="text" id="nuevo-<?= h($tipo) ?>" name="nombre" maxlength="<?= (int) $max ?>" required>
+            </div>
             <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>">Agregar</button>
         </form>
     </section>
@@ -456,12 +458,18 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
         <h2>Nuevo evento</h2>
         <form method="post" action="registros.php?vista=eventos" class="cat-alta-form cat-alta-evento">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-            <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
-            <input type="text" id="nuevo-evento" name="nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
-            <label class="etiqueta sec" for="nuevo-inicio">Inicio</label>
-            <input type="datetime-local" id="nuevo-inicio" name="fecha_inicio" required>
-            <label class="etiqueta sec" for="nuevo-fin">Fin</label>
-            <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
+                <input type="text" id="nuevo-evento" name="nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
+            </div>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-inicio">Inicio</label>
+                <input type="datetime-local" id="nuevo-inicio" name="fecha_inicio" required>
+            </div>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-fin">Fin</label>
+                <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
+            </div>
             <button type="submit" class="btn-primario" name="accion" value="guardar_evento">Agregar</button>
         </form>
     </section>
@@ -1023,9 +1031,9 @@ if ($autenticado && $vista === 'tabla') {
         .catalogo { max-width: 1100px; margin: 0 auto; }
         .cat-alta { padding: 16px; margin-bottom: 12px; }
         .cat-alta h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
-        .cat-alta-form { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: end; }
-        .cat-alta-form label { margin: 0; }
-        .cat-alta-evento { grid-template-columns: 1fr; }
+        .cat-alta-form { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: end; }
+        .cat-campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .cat-campo label { margin: 0; }
         .cat-tabla-wrap { padding: 0; overflow-x: auto; }
         .catalogo table.cat-tabla { display: table; width: 100%; min-width: 640px; border-collapse: collapse; }
         .catalogo table.cat-tabla thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
@@ -1052,9 +1060,7 @@ if ($autenticado && $vista === 'tabla') {
         .pag-off { opacity: 0.4; pointer-events: none; }
         @media (min-width: 768px) {
             .cat-alta-form { grid-template-columns: 1fr auto; }
-            .cat-alta-form label { grid-column: 1 / -1; }
-            .cat-alta-evento { grid-template-columns: 1.4fr 1fr 1fr auto; }
-            .cat-alta-evento label { grid-column: auto; }
+            .cat-alta-evento { grid-template-columns: minmax(140px, 1.4fr) minmax(190px, 1fr) minmax(190px, 1fr) auto; }
         }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
         .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }
