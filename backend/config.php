@@ -6,6 +6,10 @@
  * la cuenta de eventos que ya estaban en el proyecto.
  */
 
+// Hora del evento: fecha_registro llega en hora de México desde el navegador y
+// fecha_entrada se escribe con date(); ambas deben usar el mismo reloj.
+date_default_timezone_set('America/Mexico_City');
+
 function cargarEnv($ruta) {
     if (!is_readable($ruta)) {
         return;
