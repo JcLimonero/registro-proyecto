@@ -6,7 +6,9 @@ App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un
 1. `composer install` (PHPMailer, endroid/qr-code, TCPDF).
 2. Crear la base MySQL `registro_proyecto` (la tabla `registros` y sus columnas, incl. `fecha_entrada` y `confirmado`, se crean/actualizan solas vía `createTable()` en `backend/config.php`).
 3. `cp .env.example .env` y completar valores (DB y SMTP).
-4. Servir desde la raíz: `php -S localhost:8000` y abrir `/index.html` (registro) o `/escaner.html` (escáner).
+4. Servir desde la raíz SIEMPRE con el router: `php -S localhost:8000 router.php` y abrir `/index.html` (registro) o `/escaner.html` (escáner).
+
+> No servir la raíz sin `router.php` (servidor embebido) ni sin el `.htaccess` (Apache): sin ellos `/.env` se entrega en claro. El router y el `.htaccess` devuelven 404/403 a cualquier archivo oculto.
 
 ## Endpoints (`backend/`)
 - `registrar.php` (POST JSON): guarda el registro.

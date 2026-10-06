@@ -1,0 +1,5 @@
+# Apache: niega el acceso a archivos ocultos (.env, .env.example, .git, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.

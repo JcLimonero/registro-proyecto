@@ -12,6 +12,8 @@ registro-proyecto/
 │   ├── generar-qr.php      # Devuelve un QR en PNG (?text=...)
 │   ├── validar-asistencia.php  # Marca la entrada de un ticket
 │   └── estadisticas.php    # Totales: registrados, confirmados, pendientes
+├── router.php              # Router de php -S: bloquea archivos ocultos (.env)
+├── .htaccess               # Apache: niega dotfiles
 ├── composer.json
 ├── composer.lock
 ├── .env.example            # Plantilla de variables de entorno
