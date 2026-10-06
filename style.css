@@ -205,6 +205,26 @@ h1 {
     75% { content: '...'; }
 }
 
+.pie {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 14px;
+    text-align: center;
+}
+
+.pie a {
+    color: rgba(255, 255, 255, 0.28);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+}
+
+.pie a:hover {
+    color: rgba(255, 255, 255, 0.55);
+}
+
 @media (max-width: 480px) {
     .container {
         padding: 20px;
