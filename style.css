@@ -210,7 +210,10 @@ h1 {
     left: 0;
     right: 0;
     bottom: 14px;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
 }
 
 .pie a {

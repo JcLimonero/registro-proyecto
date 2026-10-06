@@ -1,4 +1,7 @@
 registro-proyecto/
+├── assets/
+│   ├── grupo-vanguardia-logo.png  # Imagotipo oficial (escáner y portal)
+│   └── favicon.png                # Favicon oficial del mismo logo
 ├── index.html              # Formulario de registro
 ├── style.css
 ├── script.js

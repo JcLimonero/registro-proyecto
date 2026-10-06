@@ -373,6 +373,7 @@ if ($autenticado) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
     <title>Registros</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -433,7 +434,17 @@ if ($autenticado) {
             text-decoration: none;
         }
         .btn-sec:hover { background: #f4f5f7; }
+        .marca {
+            display: inline-block;
+            width: 152px;
+            height: 36px;
+            background: #1a1a1a;
+            -webkit-mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
+            mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
+        }
+        .login .marca { display: block; margin: 0 auto 20px; }
         .panel { max-width: 1280px; margin: 0 auto; padding: 32px 16px; }
+        .marca-barra { display: flex; align-items: center; gap: 16px; }
         .barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
         .barra h1 { margin: 0; font-size: 20px; font-weight: 700; }
         .acciones { display: flex; gap: 8px; }
@@ -520,6 +531,7 @@ if ($autenticado) {
 <?php if (!$autenticado): ?>
     <div class="login-wrap">
         <form class="tarjeta login" method="post" action="registros.php" autocomplete="off">
+            <div class="marca" role="img" aria-label="Grupo Vanguardia"></div>
             <h1>Registros</h1>
             <p class="sec">Ingresa la contraseña para continuar.</p>
             <input type="hidden" name="accion" value="entrar">
@@ -534,7 +546,10 @@ if ($autenticado) {
 <?php else: ?>
     <div class="panel">
         <div class="barra">
-            <h1>Registros <span class="sec" style="font-weight:400;font-size:14px;">(<?= count($filas) ?>)</span></h1>
+            <div class="marca-barra">
+                <div class="marca" role="img" aria-label="Grupo Vanguardia"></div>
+                <h1>Registros <span class="sec" style="font-weight:400;font-size:14px;">(<?= count($filas) ?>)</span></h1>
+            </div>
             <div class="acciones">
                 <a class="btn btn-sec" href="registros.php?descargar=1">Descargar Excel</a>
                 <form method="post" action="registros.php">

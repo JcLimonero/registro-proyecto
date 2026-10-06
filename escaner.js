@@ -218,8 +218,9 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmContent.innerHTML = `
             <div class="confirm-card warning">
                 <div class="confirm-icon">⚠️</div>
-                <h2>Ya Registrado</h2>
-                <p>Esta entrada ya había sido registrada hoy</p>
+                <h2>Este código ya fue escaneado</h2>
+                <p class="aviso-nombre">${escapeHtml(data.nombre)}</p>
+                <p>Ya entró. Esta lectura no se registra otra vez.</p>
             </div>
             
             <div class="info-box">
@@ -232,21 +233,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span>${escapeHtml(data.num_empleado)}</span>
                 </div>
                 <div class="info-row">
-                    <strong>Entrada Anterior:</strong>
+                    <strong>Entrada anterior:</strong>
                     <span>${escapeHtml(data.fecha_entrada)}</span>
                 </div>
             </div>
             
             <button class="btn-new-scan" onclick="nuevoEscaneo()">
-                🔄 Escanear Siguiente
+                Escanear siguiente
             </button>
         `;
-
-        setTimeout(() => {
-            if (confirmSection.style.display !== 'none') {
-                nuevoEscaneo();
-            }
-        }, 2000);
     }
 
     function mostrarError(mensaje) {

@@ -115,6 +115,16 @@ body {
     margin-bottom: 30px;
 }
 
+.marca {
+    display: inline-block;
+    width: 168px;
+    height: 40px;
+    margin-bottom: 16px;
+    background: #1a1a1a;
+    -webkit-mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
+    mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
+}
+
 .header h1 {
     color: #333;
     font-size: 2rem;
@@ -290,8 +300,14 @@ body {
 }
 
 .confirm-card.warning {
-    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    background: #1a1a1a;
     color: white;
+}
+
+.confirm-card.warning .aviso-nombre {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 8px 0 4px;
 }
 
 .confirm-icon {
