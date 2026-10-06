@@ -1,29 +1,64 @@
+/*
+ * Escáner — mobile first.
+ * Base = teléfono (una columna, controles grandes, texto >= 16px en campos).
+ * Desde 768px se centra y se limita el ancho para escritorio.
+ */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 12px;
+}
+
+.container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    padding: 16px;
+    width: 100%;
+    max-width: 640px;
+}
+
+button {
+    font-family: inherit;
+    touch-action: manipulation;
+}
+
+/* ---------- Estadísticas ---------- */
 .stats-panel {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin-bottom: 30px;
+    gap: 8px;
+    margin-bottom: 20px;
 }
 
 .stat-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 18px 15px;
-    border-radius: 15px;
+    text-align: center;
+    gap: 2px;
+    padding: 10px 6px;
+    border-radius: 12px;
     color: white;
-    transition: transform 0.3s, box-shadow 0.3s;
     cursor: default;
-}
-
-.stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card.total {
@@ -39,7 +74,7 @@
 }
 
 .stat-icon {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
     line-height: 1;
 }
 
@@ -49,17 +84,17 @@
 }
 
 .stat-value {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     line-height: 1.1;
 }
 
 .stat-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     opacity: 0.95;
-    font-weight: 500;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .stat-value.updated {
@@ -72,54 +107,17 @@
     100% { transform: scale(1); }
 }
 
-@media (max-width: 600px) {
-    .stats-panel {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-    
-    .stat-card {
-        padding: 12px 15px;
-    }
-    
-    .stat-value {
-        font-size: 1.5rem;
-    }
-    
-    .stat-icon {
-        font-size: 1.5rem;
-    }
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
-.container {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    padding: 40px;
-    max-width: 700px;
-    width: 100%;
-}
-
+/* ---------- Encabezado ---------- */
 .header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 16px;
 }
 
 .marca {
     display: inline-block;
-    width: 168px;
-    height: 40px;
-    margin-bottom: 16px;
+    width: 150px;
+    height: 36px;
+    margin-bottom: 10px;
     background: #1a1a1a;
     -webkit-mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
     mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
@@ -127,8 +125,8 @@ body {
 
 .header h1 {
     color: #333;
-    font-size: 2rem;
-    margin-bottom: 8px;
+    font-size: 1.6rem;
+    margin-bottom: 6px;
 }
 
 .header p {
@@ -136,24 +134,24 @@ body {
     font-size: 1rem;
 }
 
+/* ---------- Cámara ---------- */
 .camera-section {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     text-align: center;
 }
 
 .camera-box {
     position: relative;
     width: 100%;
-    max-width: 420px;
-    min-height: 120px;
     margin: 0 auto 12px;
-    border-radius: 15px;
+    border-radius: 14px;
     overflow: hidden;
     background: #1a1a1a;
 }
 
 #qrReader {
     width: 100%;
+    border: 0 !important;
 }
 
 #qrReader video {
@@ -162,19 +160,19 @@ body {
 }
 
 .camera-placeholder {
-    position: absolute;
-    inset: 0;
+    min-height: 65vw;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #bbb;
+    font-size: 1.1rem;
     font-weight: 600;
 }
 
 .camera-status {
-    min-height: 1.3em;
-    margin-bottom: 10px;
-    font-size: 0.95rem;
+    min-height: 1.4em;
+    margin-bottom: 12px;
+    font-size: 1rem;
     font-weight: 600;
     color: #666;
 }
@@ -192,18 +190,21 @@ body {
 }
 
 .btn-camera {
-    padding: 12px 26px;
+    width: 100%;
+    min-height: 56px;
+    padding: 14px 26px;
     background: #1a1a1a;
     color: white;
     border: none;
     border-radius: 12px;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background 0.2s;
 }
 
-.btn-camera:hover:not(:disabled) {
+.btn-camera:hover:not(:disabled),
+.btn-camera:active:not(:disabled) {
     background: #333;
 }
 
@@ -212,17 +213,19 @@ body {
     cursor: wait;
 }
 
+/* ---------- Entrada manual / pistola ---------- */
 .input-container {
     position: relative;
-    margin-bottom: 25px;
+    margin-bottom: 16px;
 }
 
 #ticketInput {
     width: 100%;
-    padding: 25px 70px 25px 25px;
-    font-size: 1.3rem;
+    min-height: 60px;
+    padding: 16px 56px 16px 16px;
+    font-size: 1.1rem; /* >= 16px: evita el zoom automático en iOS */
     border: 3px solid #667eea;
-    border-radius: 15px;
+    border-radius: 14px;
     outline: none;
     text-align: center;
     font-weight: 600;
@@ -245,11 +248,12 @@ body {
 
 .scan-icon {
     position: absolute;
-    right: 25px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 2rem;
+    font-size: 1.6rem;
     animation: pulse 2s infinite;
+    pointer-events: none;
 }
 
 @keyframes pulse {
@@ -259,11 +263,11 @@ body {
 
 .scan-result {
     text-align: center;
-    padding: 20px;
+    padding: 14px;
     border-radius: 12px;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     font-weight: 600;
-    font-size: 1.05rem;
+    font-size: 1rem;
     transition: all 0.3s;
 }
 
@@ -291,37 +295,40 @@ body {
     border: 2px solid #ffc107;
 }
 
+/* ---------- Últimos escaneos ---------- */
 .recent-scans {
     border-top: 2px solid #eee;
-    padding-top: 20px;
+    padding-top: 16px;
 }
 
 .recent-scans h3 {
     color: #555;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     font-size: 1rem;
 }
 
 .recent-list {
-    max-height: 200px;
+    max-height: 240px;
     overflow-y: auto;
 }
 
 .no-recent {
-    color: #999;
+    color: #777;
     text-align: center;
     font-style: italic;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
 .recent-item {
-    padding: 10px 15px;
+    padding: 12px;
     border-radius: 8px;
     margin-bottom: 8px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 4px 12px;
 }
 
 .recent-item.success {
@@ -342,27 +349,30 @@ body {
 .recent-item .nombre {
     font-weight: 600;
     color: #333;
+    overflow-wrap: anywhere;
 }
 
 .recent-item .hora {
-    font-size: 0.8rem;
-    color: #666;
+    font-size: 0.85rem;
+    color: #555;
 }
 
+/* ---------- Aviso / confirmación (ocupa todo el ancho) ---------- */
 .confirm-section {
     text-align: center;
     animation: fadeIn 0.4s;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
+    from { opacity: 0; transform: scale(0.97); }
     to { opacity: 1; transform: scale(1); }
 }
 
 .confirm-card {
-    padding: 40px 30px;
-    border-radius: 20px;
-    margin-bottom: 25px;
+    width: 100%;
+    padding: 28px 16px;
+    border-radius: 16px;
+    margin-bottom: 16px;
 }
 
 .confirm-card.success {
@@ -381,32 +391,34 @@ body {
 }
 
 .confirm-card.warning .aviso-nombre {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 700;
     margin: 8px 0 4px;
+    overflow-wrap: anywhere;
 }
 
 .confirm-icon {
-    font-size: 6rem;
-    margin-bottom: 20px;
+    font-size: 4.5rem;
+    margin-bottom: 12px;
     line-height: 1;
 }
 
 .confirm-card h2 {
-    font-size: 2.2rem;
-    margin-bottom: 15px;
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+    line-height: 1.2;
 }
 
 .confirm-card p {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     opacity: 0.95;
 }
 
 .info-box {
     background: #f8f9fa;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 25px;
+    border-radius: 14px;
+    padding: 8px 16px;
+    margin-bottom: 16px;
     text-align: left;
 }
 
@@ -414,7 +426,9 @@ body {
     padding: 12px 0;
     border-bottom: 1px solid #dee2e6;
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
+    gap: 2px 12px;
     font-size: 1rem;
 }
 
@@ -430,16 +444,18 @@ body {
 .info-box .info-row span {
     color: #212529;
     font-weight: 500;
+    overflow-wrap: anywhere;
 }
 
 .btn-new-scan {
     width: 100%;
-    padding: 18px;
+    min-height: 60px;
+    padding: 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     border-radius: 12px;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
@@ -450,26 +466,101 @@ body {
     box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
 }
 
-@media (max-width: 480px) {
+/* ---------- Escritorio: mismo diseño, centrado y sin estirarse ---------- */
+@media (min-width: 768px) {
+    body {
+        align-items: center;
+        padding: 24px;
+    }
+
     .container {
-        padding: 25px;
+        padding: 36px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
-    
+
+    .stats-panel {
+        gap: 14px;
+        margin-bottom: 28px;
+    }
+
+    .stat-card {
+        flex-direction: row;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px 12px;
+        border-radius: 15px;
+        text-align: left;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        font-size: 1.8rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+    }
+
+    .header {
+        margin-bottom: 24px;
+    }
+
+    .marca {
+        width: 168px;
+        height: 40px;
+        margin-bottom: 14px;
+    }
+
     .header h1 {
-        font-size: 1.5rem;
+        font-size: 2rem;
     }
-    
+
+    .camera-box {
+        max-width: 460px;
+    }
+
+    .camera-placeholder {
+        min-height: 240px;
+    }
+
+    .btn-camera {
+        width: auto;
+        min-width: 240px;
+    }
+
     #ticketInput {
-        font-size: 1rem;
-        padding: 20px 60px 20px 20px;
+        font-size: 1.3rem;
+        padding: 22px 70px 22px 22px;
     }
-    
+
+    .scan-icon {
+        right: 24px;
+        font-size: 2rem;
+    }
+
+    .confirm-card {
+        padding: 36px 30px;
+    }
+
     .confirm-icon {
-        font-size: 4rem;
+        font-size: 6rem;
     }
-    
+
     .confirm-card h2 {
-        font-size: 1.5rem;
+        font-size: 2.2rem;
     }
-	
+
+    .confirm-card.warning .aviso-nombre {
+        font-size: 1.8rem;
+    }
+
+    .info-box {
+        padding: 12px 24px;
+    }
 }

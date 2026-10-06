@@ -378,23 +378,27 @@ if ($autenticado) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Mobile first: base = teléfono; desde 768px escritorio (tabla, centrado, tope de ancho). */
         * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body {
             margin: 0;
             background: #f4f5f7;
             color: #212529;
             font-family: 'Montserrat', sans-serif;
-            font-size: 14px;
+            font-size: 16px;
         }
+        button, .btn-fila, .btn { touch-action: manipulation; }
         .sec { color: #6c757d; }
         .etiqueta, button, .btn {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.1em;
         }
         .login-wrap {
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -405,29 +409,31 @@ if ($autenticado) {
             border-radius: 12px;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
-        .login { width: 100%; max-width: 380px; padding: 32px 40px; }
-        .login h1 { margin: 0 0 4px; font-size: 20px; font-weight: 700; }
+        .login { width: 100%; max-width: 420px; padding: 28px 20px; }
+        .login h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; }
         .login p { margin: 0 0 24px; }
         .login label { display: block; margin-bottom: 8px; }
         .login input[type=password] {
             width: 100%;
-            height: 40px;
+            height: 52px;
             border: 0;
             background: #eef0f3;
-            padding: 0 12px;
+            padding: 0 14px;
             font: inherit;
+            font-size: 16px;
             color: #212529;
             border-radius: 0;
             margin-bottom: 16px;
         }
         .login input:focus { outline: 2px solid #adb5bd; }
-        .error { color: #b02a37; margin: 0 0 16px; font-size: 13px; }
-        button, .btn { font-family: inherit; cursor: pointer; border-radius: 0; height: 40px; padding: 0 20px; }
+        .error { color: #b02a37; margin: 0 0 16px; font-size: 14px; }
+        button, .btn { font-family: inherit; cursor: pointer; border-radius: 0; height: 52px; padding: 0 20px; }
         .btn-primario { width: 100%; background: #1a1a1a; color: #fff; border: 0; }
         .btn-primario:hover { background: #2a2a2a; }
         .btn-sec {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             background: #fff;
             color: #212529;
             border: 1px solid #adb5bd;
@@ -443,51 +449,71 @@ if ($autenticado) {
             mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
         }
         .login .marca { display: block; margin: 0 auto 20px; }
-        .panel { max-width: 1280px; margin: 0 auto; padding: 32px 16px; }
-        .marca-barra { display: flex; align-items: center; gap: 16px; }
-        .barra { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .panel { max-width: 1280px; margin: 0 auto; padding: 16px 12px 32px; }
+        .marca-barra { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .barra { display: flex; flex-direction: column; gap: 12px; align-items: stretch; margin-bottom: 16px; }
         .barra h1 { margin: 0; font-size: 20px; font-weight: 700; }
-        .acciones { display: flex; gap: 8px; }
+        .acciones { display: flex; flex-direction: column; gap: 8px; }
         .acciones form { margin: 0; }
+        .acciones .btn, .acciones button { width: 100%; }
 
-        .tabla-wrap { overflow-x: auto; }
-        table { width: 100%; min-width: 960px; border-collapse: collapse; }
-        thead { background: #f8fafc; }
-        th {
+        /* Tabla -> tarjetas apiladas en teléfono */
+        .tabla-wrap { background: transparent; box-shadow: none; border-radius: 0; }
+        table, thead, tbody, tr, td { display: block; width: 100%; }
+        thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+        tr {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            margin-bottom: 12px;
+            padding: 8px 16px;
+        }
+        td {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eef0f3;
+            text-align: right;
+        }
+        td::before {
+            content: attr(data-label);
+            flex: 0 0 38%;
             text-align: left;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             color: #6c757d;
-            padding: 14px 16px;
-            border-bottom: 1px solid #adb5bd;
-            vertical-align: bottom;
         }
-        td { padding: 12px 16px; border-bottom: 1px solid #eef0f3; vertical-align: top; }
-        tr:last-child td { border-bottom: 0; }
+        td:last-child { border-bottom: 0; }
         td.texto { overflow-wrap: anywhere; word-break: break-word; }
-        td.fecha { white-space: nowrap; }
-        .vacio, .aviso { padding: 48px 16px; text-align: center; color: #6c757d; }
+        td.estado { align-items: center; }
+        td.estado .estado-valor { text-align: right; }
+        .vacio, .aviso { padding: 48px 16px; text-align: center; color: #6c757d; background: #fff; border-radius: 12px; }
 
         .pastilla {
             display: inline-block;
             padding: 4px 10px;
             border-radius: 999px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             line-height: 1.4;
         }
         .pastilla.entro { background: #1a1a1a; color: #fff; }
         .pastilla.pendiente { background: #eef0f3; color: #212529; }
-        .fecha-entrada { display: block; margin-top: 4px; font-size: 12px; white-space: nowrap; }
+        .fecha-entrada { display: block; margin-top: 4px; font-size: 13px; }
 
-        .fila-acciones { display: flex; gap: 6px; flex-wrap: wrap; }
-        .fila-acciones form { margin: 0; }
+        .fila-acciones { display: flex; gap: 8px; width: 100%; }
+        .fila-acciones form { margin: 0; flex: 1; }
+        .fila-acciones .btn-fila { flex: 1; }
         .btn-fila {
-            height: 30px;
+            width: 100%;
+            height: 48px;
             padding: 0 12px;
-            font-size: 12px;
+            justify-content: center;
+            font-size: 14px;
             letter-spacing: 0.04em;
             text-transform: none;
             font-weight: 500;
@@ -500,31 +526,87 @@ if ($autenticado) {
         }
         .btn-fila:hover { background: #f4f5f7; }
         .btn-fila.eliminar { color: #b02a37; }
+        td.acciones-celda { display: block; }
+        td.acciones-celda::before { display: none; }
 
-        .mensaje { padding: 12px 16px; margin-bottom: 20px; border-radius: 8px; font-size: 14px; background: #fff; border: 1px solid #adb5bd; }
+        .mensaje { padding: 14px 16px; margin-bottom: 16px; border-radius: 8px; font-size: 15px; background: #fff; border: 1px solid #adb5bd; }
         .mensaje.ok { border-left: 4px solid #1a1a1a; }
         .mensaje.error { border-left: 4px solid #b02a37; color: #b02a37; }
 
-        .edicion { padding: 24px; margin-bottom: 20px; }
-        .edicion h2 { margin: 0 0 4px; font-size: 16px; font-weight: 700; }
+        .edicion { padding: 20px 16px; margin-bottom: 16px; }
+        .edicion h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
         .edicion .ticket { margin: 0 0 20px; overflow-wrap: anywhere; }
-        .campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .campos { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; }
         .campos label { display: block; margin-bottom: 6px; }
         .campos input {
             width: 100%;
-            height: 40px;
+            height: 52px;
             border: 0;
             background: #eef0f3;
-            padding: 0 12px;
+            padding: 0 14px;
             font: inherit;
+            font-size: 16px;
             color: #212529;
             border-radius: 0;
         }
         .campos input:focus { outline: 2px solid #adb5bd; }
         .edicion ul { margin: 0 0 16px; padding-left: 20px; color: #b02a37; }
-        .edicion .botones { display: flex; gap: 8px; flex-wrap: wrap; }
-        .edicion .btn-primario { width: auto; }
+        .edicion .botones { display: flex; flex-direction: column; gap: 8px; }
+        .edicion .btn-primario { width: 100%; }
+        .edicion .btn-sec { width: 100%; }
         .edicion form { margin: 0; }
+
+        @media (min-width: 768px) {
+            body { font-size: 14px; }
+            .etiqueta, button, .btn { font-size: 12px; }
+            .login { max-width: 380px; padding: 32px 40px; }
+            .login input[type=password] { height: 40px; padding: 0 12px; }
+            button, .btn { height: 40px; }
+            .panel { padding: 32px 16px; }
+            .marca-barra { gap: 16px; flex-wrap: nowrap; }
+            .barra { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+            .acciones { flex-direction: row; }
+            .acciones .btn, .acciones button { width: auto; }
+
+            .tabla-wrap { background: #fff; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); border-radius: 12px; overflow-x: auto; }
+            table { display: table; width: 100%; min-width: 960px; border-collapse: collapse; }
+            thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
+            tbody { display: table-row-group; }
+            tr { display: table-row; background: transparent; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
+            th {
+                text-align: left;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: #6c757d;
+                padding: 14px 16px;
+                border-bottom: 1px solid #adb5bd;
+                vertical-align: bottom;
+            }
+            td { display: table-cell; width: auto; padding: 12px 16px; border-bottom: 1px solid #eef0f3; vertical-align: top; text-align: left; }
+            td::before { display: none; }
+            td:last-child { border-bottom: 1px solid #eef0f3; }
+            tr:last-child td { border-bottom: 0; }
+            td.fecha { white-space: nowrap; }
+            td.estado .estado-valor { text-align: left; }
+            td.acciones-celda { display: table-cell; }
+            .vacio, .aviso { background: transparent; border-radius: 0; }
+            .pastilla, .fecha-entrada { font-size: 12px; }
+            .fecha-entrada { white-space: nowrap; }
+
+            .fila-acciones { width: auto; flex-wrap: wrap; gap: 6px; }
+            .fila-acciones form, .fila-acciones .btn-fila { flex: none; }
+            .btn-fila { width: auto; height: 30px; font-size: 12px; justify-content: flex-start; }
+
+            .mensaje { font-size: 14px; margin-bottom: 20px; }
+            .edicion { padding: 24px; margin-bottom: 20px; }
+            .edicion h2 { font-size: 16px; }
+            .campos { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+            .campos input { height: 40px; padding: 0 12px; }
+            .edicion .botones { flex-direction: row; flex-wrap: wrap; }
+            .edicion .btn-primario, .edicion .btn-sec { width: auto; }
+        }
     </style>
 </head>
 <body>
@@ -615,11 +697,11 @@ if ($autenticado) {
                 <tbody>
                 <?php foreach ($filas as $fila): ?>
                     <tr>
-                        <td class="estado"><?= htmlEstado($fila) ?></td>
+                        <td class="estado" data-label="Estado"><div class="estado-valor"><?= htmlEstado($fila) ?></div></td>
                     <?php foreach (array_keys(COLUMNAS_VISTA) as $columna): ?>
-                        <td class="<?= $columna === 'fecha_registro' ? 'fecha' : 'texto' ?>"><?= h(valorCelda($fila, $columna)) ?></td>
+                        <td class="<?= $columna === 'fecha_registro' ? 'fecha' : 'texto' ?>" data-label="<?= h(COLUMNAS_VISTA[$columna]) ?>"><?= h(valorCelda($fila, $columna)) ?></td>
                     <?php endforeach; ?>
-                        <td>
+                        <td class="acciones-celda">
                             <div class="fila-acciones">
                                 <a class="btn-fila" href="registros.php?editar=<?= (int) $fila['id'] ?>">Editar</a>
                                 <form method="post" action="registros.php"
