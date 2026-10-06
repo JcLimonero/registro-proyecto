@@ -18,4 +18,4 @@ App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un
 - `estadisticas.php` (GET): totales para el escáner.
 
 ## Secretos
-Credenciales (DB, SMTP) solo en variables de entorno o `.env` (ignorado por git). Nunca en el código ni en el repo. El escáner no tiene autenticación (decisión actual).
+La cuenta SMTP de eventos está como valor por defecto en `backend/config.php` en esta rama, hasta que se rote. Un `.env` (ignorado por git) o las variables de entorno la sustituyen si están definidas. El escáner no tiene autenticación (decisión actual).

@@ -2,7 +2,8 @@
 /**
  * Configuración por entorno.
  * Los valores se leen de variables de entorno o del archivo .env en la raíz
- * del proyecto (no versionado). Nunca poner credenciales reales en este archivo.
+ * del proyecto (no versionado). Si no hay entorno, se usan los valores de
+ * la cuenta de eventos que ya estaban en el proyecto.
  */
 
 function cargarEnv($ruta) {
@@ -42,9 +43,9 @@ define('DB_NAME', envOr('DB_NAME', 'registro_proyecto'));
 
 define('SMTP_HOST', envOr('SMTP_HOST', 'smtp.gmail.com'));
 define('SMTP_PORT', (int) envOr('SMTP_PORT', 587));
-define('SMTP_USER', envOr('SMTP_USER', ''));
-define('SMTP_PASS', envOr('SMTP_PASS', ''));
-define('SMTP_FROM', envOr('SMTP_FROM', ''));
+define('SMTP_USER', envOr('SMTP_USER', 'eventosvgd@gmail.com'));
+define('SMTP_PASS', envOr('SMTP_PASS', 'stuh dewv dtue iohz'));
+define('SMTP_FROM', envOr('SMTP_FROM', 'eventosvgd@gmail.com'));
 
 function getConnection() {
     try {
