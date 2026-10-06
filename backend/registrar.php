@@ -28,7 +28,7 @@ try {
     $ahora = ahoraMexico();
     $vigentes = eventosVigentes($conn, $ahora);
     if (!$vigentes) {
-        throw new Exception('El registro está cerrado: no hay un evento vigente en este momento.');
+        throw new Exception('El registro está cerrado: no hay un periodo de registro abierto en este momento.');
     }
 
     $evento = null;
@@ -46,7 +46,7 @@ try {
             }
         }
         if ($evento === null) {
-            throw new Exception('El evento elegido no está vigente.');
+            throw new Exception('El registro para el evento elegido está cerrado.');
         }
     }
 

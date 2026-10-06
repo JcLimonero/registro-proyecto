@@ -20,9 +20,11 @@ function eventoPublico(array $e) {
     return [
         'id'           => (int) $e['id'],
         'nombre'       => $e['nombre'],
-        'fecha_inicio' => $e['fecha_inicio'],
-        'fecha_fin'    => $e['fecha_fin'],
-        'ubicacion'    => ligaUbicacion($e['ubicacion'] ?? ''),
+        'fecha_inicio'     => $e['fecha_inicio'],
+        'fecha_fin'        => $e['fecha_fin'],
+        'registro_inicio'  => $e['registro_inicio'],
+        'registro_fin'     => $e['registro_fin'],
+        'ubicacion'        => ligaUbicacion($e['ubicacion'] ?? ''),
     ];
 }
 

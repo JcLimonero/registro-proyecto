@@ -402,10 +402,16 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
             list($nombre, $err) = validarNombreCatalogo($post['nombre'] ?? '', EVENTO_NOMBRE_MAX, 'el evento');
             $inicio = fechaLocalADb($post['fecha_inicio'] ?? null);
             $fin = fechaLocalADb($post['fecha_fin'] ?? null);
+            $regIni = fechaLocalADb($post['registro_inicio'] ?? null);
+            $regFin = fechaLocalADb($post['registro_fin'] ?? null);
             if ($err === null && ($inicio === null || $fin === null)) {
-                $err = 'Indica la fecha de inicio y la de fin del evento.';
+                $err = 'Indica el inicio y el fin del evento.';
             } elseif ($err === null && $fin < $inicio) {
-                $err = 'La fecha de fin no puede ser anterior a la de inicio.';
+                $err = 'El fin del evento no puede ser anterior al inicio.';
+            } elseif ($err === null && ($regIni === null || $regFin === null)) {
+                $err = 'Indica desde cuándo y hasta cuándo se puede registrar la gente.';
+            } elseif ($err === null && $regFin < $regIni) {
+                $err = 'El cierre del registro no puede ser anterior a su apertura.';
             }
             if ($err !== null) {
                 volverConMensaje('error', $err, $vista);
@@ -415,15 +421,15 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
                 volverConMensaje('error', 'La ubicación debe ser una liga http o https, por ejemplo la de Google Maps.', $vista);
             }
             if ($sinId) {
-                $conn->prepare('INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, ubicacion) VALUES (:n, :i, :f, :u)')
-                    ->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':u' => $ubicacion === '' ? null : $ubicacion]);
+                $conn->prepare('INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion) VALUES (:n, :i, :f, :ri, :rf, :u)')
+                    ->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':ri' => $regIni, ':rf' => $regFin, ':u' => $ubicacion === '' ? null : $ubicacion]);
                 volverConMensaje('ok', 'Evento creado.', $vista);
             }
             if ($id === null) {
                 volverConMensaje('error', 'Evento no válido.', $vista);
             }
-            $stmt = $conn->prepare('UPDATE eventos SET nombre = :n, fecha_inicio = :i, fecha_fin = :f, ubicacion = :u WHERE id = :id');
-            $stmt->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':u' => $ubicacion === '' ? null : $ubicacion, ':id' => $id]);
+            $stmt = $conn->prepare('UPDATE eventos SET nombre = :n, fecha_inicio = :i, fecha_fin = :f, registro_inicio = :ri, registro_fin = :rf, ubicacion = :u WHERE id = :id');
+            $stmt->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':ri' => $regIni, ':rf' => $regFin, ':u' => $ubicacion === '' ? null : $ubicacion, ':id' => $id]);
             if (!$stmt->rowCount()) {
                 $existe = $conn->prepare('SELECT 1 FROM eventos WHERE id = :id');
                 $existe->execute([':id' => $id]);
@@ -591,17 +597,25 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
         <h2>Nuevo evento</h2>
         <form method="post" action="registros.php?vista=eventos" class="cat-alta-form cat-alta-evento">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-            <div class="cat-campo">
+            <div class="cat-campo cat-nombre">
                 <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
                 <input type="text" id="nuevo-evento" name="nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
             </div>
             <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-inicio">Inicio</label>
+                <label class="etiqueta sec" for="nuevo-inicio">Inicio del evento</label>
                 <input type="datetime-local" id="nuevo-inicio" name="fecha_inicio" required>
             </div>
             <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-fin">Fin</label>
+                <label class="etiqueta sec" for="nuevo-fin">Fin del evento</label>
                 <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
+            </div>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-reg-ini">Registro desde</label>
+                <input type="datetime-local" id="nuevo-reg-ini" name="registro_inicio" required>
+            </div>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-reg-fin">Registro hasta</label>
+                <input type="datetime-local" id="nuevo-reg-fin" name="registro_fin" required>
             </div>
             <div class="cat-campo cat-ubicacion">
                 <label class="etiqueta sec" for="nuevo-ubicacion">Ubicación</label>
@@ -611,12 +625,14 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
         </form>
     </section>
     <?php if (!$pag['total']): ?>
-        <div class="tarjeta vacio">Aún no hay eventos. Sin un evento vigente, el registro público permanece cerrado.</div>
+        <div class="tarjeta vacio">Aún no hay eventos. Sin un periodo de registro abierto, el registro público permanece cerrado.</div>
     <?php else: ?>
     <div class="tarjeta tabla-wrap cat-tabla-wrap">
         <table class="cat-tabla cat-eventos">
             <colgroup>
                 <col class="col-nombre">
+                <col class="col-fecha">
+                <col class="col-fecha">
                 <col class="col-fecha">
                 <col class="col-fecha">
                 <col class="col-ubicacion">
@@ -627,8 +643,10 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
             <thead>
                 <tr>
                     <th>Nombre</th>
-                    <th>Inicio</th>
-                    <th>Fin</th>
+                    <th>Inicio del evento</th>
+                    <th>Fin del evento</th>
+                    <th>Registro desde</th>
+                    <th>Registro hasta</th>
                     <th>Ubicación</th>
                     <th>Estado</th>
                     <th>Registros</th>
@@ -636,7 +654,11 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 </tr>
             </thead>
             <tbody>
-            <?php foreach ($filas as $f): $estado = estadoEvento($f, $ahora); $i = (int) $f['id']; ?>
+            <?php foreach ($filas as $f):
+                $estado = estadoEvento($f, $ahora);
+                $i = (int) $f['id'];
+                $registroAbierto = ($f['registro_inicio'] ?? '') <= $ahora && ($f['registro_fin'] ?? '') >= $ahora;
+            ?>
                 <tr>
                     <td>
                         <form id="evento-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" class="cat-fila">
@@ -646,10 +668,15 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                             <input type="text" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required aria-label="Nombre">
                         </form>
                     </td>
-                    <td><input type="datetime-local" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required form="evento-<?= $i ?>" aria-label="Inicio"></td>
-                    <td><input type="datetime-local" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required form="evento-<?= $i ?>" aria-label="Fin"></td>
+                    <td><input type="datetime-local" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required form="evento-<?= $i ?>" aria-label="Inicio del evento"></td>
+                    <td><input type="datetime-local" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required form="evento-<?= $i ?>" aria-label="Fin del evento"></td>
+                    <td><input type="datetime-local" name="registro_inicio" value="<?= h(fechaDbALocal($f['registro_inicio'] ?? '')) ?>" required form="evento-<?= $i ?>" aria-label="Registro desde"></td>
+                    <td><input type="datetime-local" name="registro_fin" value="<?= h(fechaDbALocal($f['registro_fin'] ?? '')) ?>" required form="evento-<?= $i ?>" aria-label="Registro hasta"></td>
                     <td><input type="url" name="ubicacion" value="<?= h($f['ubicacion'] ?? '') ?>" maxlength="500" placeholder="https://maps.app.goo.gl/…" form="evento-<?= $i ?>" aria-label="Ubicación" inputmode="url"></td>
-                    <td><span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span></td>
+                    <td>
+                        <span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span>
+                        <span class="pastilla <?= $registroAbierto ? 'vigente' : 'finalizado' ?>"><?= $registroAbierto ? 'Registro abierto' : 'Registro cerrado' ?></span>
+                    </td>
                     <td class="cat-usos"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones">
                         <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" form="evento-<?= $i ?>" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
@@ -865,7 +892,7 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
         try {
             createTable();
             if ($vista === 'eventos') {
-                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.ubicacion,
+                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.registro_inicio, e.registro_fin, e.ubicacion,
                         (SELECT COUNT(*) FROM registros r WHERE r.evento_id = e.id) AS usos
                     FROM eventos e ORDER BY e.fecha_inicio DESC, e.id DESC')->fetchAll(PDO::FETCH_ASSOC);
             } elseif ($vista === 'agencias') {
@@ -1272,21 +1299,17 @@ if ($autenticado && $vista === 'tabla') {
         .pag-off { opacity: 0.4; pointer-events: none; }
         @media (min-width: 768px) {
             .cat-alta-form { grid-template-columns: 1fr auto; }
-            .cat-alta-evento { grid-template-columns: minmax(120px, 1.1fr) minmax(160px, 1fr) minmax(160px, 1fr) auto; }
+            .cat-alta-evento { grid-template-columns: 1fr 1fr; }
+            .cat-alta-evento .cat-nombre,
             .cat-alta-evento .cat-ubicacion { grid-column: 1 / -1; }
-            .catalogo table.cat-eventos { table-layout: fixed; min-width: 0; }
-            .catalogo table.cat-eventos .col-nombre { width: 12%; }
-            .catalogo table.cat-eventos .col-fecha { width: 16%; }
-            .catalogo table.cat-eventos .col-ubicacion { width: 22%; }
-            .catalogo table.cat-eventos .col-estado { width: 10%; }
-            .catalogo table.cat-eventos .col-usos { width: 10%; }
-            .catalogo table.cat-eventos .col-acciones { width: 14%; }
+            .catalogo table.cat-eventos { table-layout: auto; min-width: 1280px; }
             .catalogo table.cat-eventos th,
             .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
             .catalogo table.cat-eventos th { white-space: normal; letter-spacing: 0.02em; line-height: 1.2; }
             .catalogo table.cat-eventos input[type=datetime-local],
             .catalogo table.cat-eventos input[type=url] { min-width: 0; font-size: 13px; padding: 0 6px; }
             .catalogo table.cat-eventos .cat-acciones { white-space: nowrap; }
+            .catalogo table.cat-eventos .pastilla { display: inline-block; margin: 2px 4px 2px 0; }
         }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
         .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }

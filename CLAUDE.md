@@ -11,7 +11,7 @@ App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un
 > No servir la raíz sin `router.php` (servidor embebido) ni sin el `.htaccess` (Apache): sin ellos `/.env` se entrega en claro. El router y el `.htaccess` devuelven 404/403 a cualquier archivo oculto.
 
 ## Endpoints (`backend/`)
-- `registrar.php` (POST JSON): guarda el registro. Solo acepta si AHORA (America/Mexico_City, reloj del servidor) está entre `fecha_inicio` y `fecha_fin` de un evento, ambos inclusive; con varios eventos vigentes exige `eventoId`. La agencia y el área deben existir en sus catálogos (se guarda el nombre como texto) y se guarda `evento_id`.
+- `registrar.php` (POST JSON): guarda el registro. Solo acepta si AHORA (America/Mexico_City, reloj del servidor) está entre `registro_inicio` y `registro_fin` de un evento, ambos inclusive; `fecha_inicio` y `fecha_fin` son las fechas del evento y no abren el registro. Con varios eventos con registro abierto exige `eventoId`. La agencia y el área deben existir en sus catálogos (se guarda el nombre como texto) y se guarda `evento_id`.
 - `enviar-correo.php` (POST JSON): envía el correo con el QR generado en local; responde `success:false` si falta config SMTP.
 - `catalogos.php` (GET, público, solo lectura): agencias, áreas y eventos vigentes; si no hay evento vigente devuelve `abierto:false` y el próximo/último evento como `referencia`.
 - `generar-qr.php?text=...`: PNG del QR (texto máx. 200 caracteres).

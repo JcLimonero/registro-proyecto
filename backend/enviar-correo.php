@@ -115,10 +115,10 @@ function enviarCorreo($data) {
                         <strong>Evento:</strong> {$evento}
                     </div>
                     <div class='info-row'>
-                        <strong>Inicio:</strong> {$inicio}
+                        <strong>Inicio del evento:</strong> {$inicio}
                     </div>
                     <div class='info-row'>
-                        <strong>Fin:</strong> {$fin}
+                        <strong>Fin del evento:</strong> {$fin}
                     </div>
                     <div class='info-row'>
                         <strong>Fecha de Registro:</strong> {$fecha}

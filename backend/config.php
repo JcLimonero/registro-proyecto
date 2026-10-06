@@ -123,23 +123,28 @@ function createTable() {
                 nombre VARCHAR(150) NOT NULL,
                 fecha_inicio DATETIME NOT NULL,
                 fecha_fin DATETIME NOT NULL,
+                registro_inicio DATETIME NULL,
+                registro_fin DATETIME NULL,
                 ubicacion VARCHAR(500) NULL
             ) DEFAULT CHARSET=utf8mb4");
-            $stmtUbicacion = $conn->prepare(
-                "SELECT COUNT(*) FROM information_schema.COLUMNS
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eventos' AND COLUMN_NAME = 'ubicacion'"
-            );
-            $stmtUbicacion->execute();
-            if ((int) $stmtUbicacion->fetchColumn() === 0) {
-                $conn->exec('ALTER TABLE eventos ADD COLUMN ubicacion VARCHAR(500) NULL');
+            foreach (['ubicacion' => 'VARCHAR(500) NULL', 'registro_inicio' => 'DATETIME NULL', 'registro_fin' => 'DATETIME NULL'] as $columna => $definicion) {
+                $stmtCol = $conn->prepare(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eventos' AND COLUMN_NAME = :columna"
+                );
+                $stmtCol->execute([':columna' => $columna]);
+                if ((int) $stmtCol->fetchColumn() === 0) {
+                    $conn->exec("ALTER TABLE eventos ADD COLUMN $columna $definicion");
+                }
             }
+            $conn->exec('UPDATE eventos SET registro_inicio = fecha_inicio WHERE registro_inicio IS NULL');
+            $conn->exec('UPDATE eventos SET registro_fin = fecha_fin WHERE registro_fin IS NULL');
         } catch(PDOException $e) {
             error_log('createTable: ' . $e->getMessage());
         }
     }
 }
 
-/** Ahora en hora de México, como «Y-m-d H:i:s» (el reloj de PHP, no el de MySQL). */
 /** Liga http(s) de la ubicación, o cadena vacía si no es una URL usable. */
 function ligaUbicacion($valor) {
     $valor = trim((string) $valor);
@@ -152,19 +157,21 @@ function ligaUbicacion($valor) {
     return $valor;
 }
 
+/** Ahora en hora de México, como «Y-m-d H:i:s» (el reloj de PHP, no el de MySQL). */
 function ahoraMexico() {
     return date('Y-m-d H:i:s');
 }
 
 /**
- * Eventos vigentes: fecha_inicio <= ahora <= fecha_fin (ambos extremos incluidos).
+ * Registro abierto: registro_inicio <= ahora <= registro_fin (ambos extremos incluidos).
+ * fecha_inicio y fecha_fin son cuándo ocurre el evento, no cuándo se puede registrar.
  * La comparación usa el reloj de PHP (America/Mexico_City), nunca NOW() de MySQL.
  */
 function eventosVigentes(PDO $conn, $ahora = null) {
     $stmt = $conn->prepare(
-        'SELECT id, nombre, fecha_inicio, fecha_fin, ubicacion FROM eventos
-         WHERE fecha_inicio <= :ahora AND fecha_fin >= :ahora2
-         ORDER BY fecha_inicio, id'
+        'SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion FROM eventos
+         WHERE registro_inicio <= :ahora AND registro_fin >= :ahora2
+         ORDER BY registro_inicio, id'
     );
     $ahora = $ahora ?? ahoraMexico();
     $stmt->execute([':ahora' => $ahora, ':ahora2' => $ahora]);
@@ -172,18 +179,18 @@ function eventosVigentes(PDO $conn, $ahora = null) {
 }
 
 /**
- * Con el registro cerrado: el próximo evento (el que empieza antes) o, si no
- * hay ninguno por venir, el último que terminó. Devuelve [fila|null, 'proximo'|'ultimo'|null].
+ * Con el registro cerrado: el próximo periodo (el que abre antes) o, si no hay
+ * ninguno por venir, el último que cerró. Devuelve [fila|null, 'proximo'|'ultimo'|null].
  */
 function eventoReferencia(PDO $conn, $ahora = null) {
     $ahora = $ahora ?? ahoraMexico();
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, ubicacion FROM eventos WHERE fecha_inicio > :ahora ORDER BY fecha_inicio, id LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion FROM eventos WHERE registro_inicio > :ahora ORDER BY registro_inicio, id LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($fila) {
         return [$fila, 'proximo'];
     }
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, ubicacion FROM eventos WHERE fecha_fin < :ahora ORDER BY fecha_fin DESC, id DESC LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion FROM eventos WHERE registro_fin < :ahora ORDER BY registro_fin DESC, id DESC LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     return $fila ? [$fila, 'ultimo'] : [null, null];

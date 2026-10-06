@@ -56,9 +56,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'Por ahora no hay un evento con registro abierto.';
         }
         if (ref.tipo === 'proximo') {
-            return `El próximo evento es «${ref.nombre}». El registro abre el ${fechaLegible(ref.fecha_inicio)} (hora de México).`;
+            return `El registro para «${ref.nombre}» abre el ${fechaLegible(ref.registro_inicio)} (hora de México). El evento es del ${fechaLegible(ref.fecha_inicio)} al ${fechaLegible(ref.fecha_fin)}.`;
         }
-        return `El último evento fue «${ref.nombre}» y el registro cerró el ${fechaLegible(ref.fecha_fin)} (hora de México).`;
+        return `El registro para «${ref.nombre}» cerró el ${fechaLegible(ref.registro_fin)} (hora de México).`;
     }
 
     // Agencias, áreas y eventos vigentes vienen del admin; fuera del periodo no se envía nada.
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectEvento.selectedIndex = 1;
                 selectEvento.required = false;
                 grupoEvento.hidden = true;
-                eventoActual.textContent = cat.eventos[0].nombre;
+                eventoActual.textContent = cat.eventos[0].nombre + ' · ' + fechaLegible(cat.eventos[0].fecha_inicio) + ' – ' + fechaLegible(cat.eventos[0].fecha_fin);
                 eventoActual.hidden = false;
             } else {
                 llenarSelect(selectEvento, 'Selecciona un evento', cat.eventos, e => String(e.id));
