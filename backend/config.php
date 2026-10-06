@@ -106,9 +106,65 @@ function createTable() {
             // Tablas creadas antes de que existieran estas columnas
             asegurarColumna($conn, 'fecha_entrada', 'DATETIME NULL');
             asegurarColumna($conn, 'confirmado', 'TINYINT(1) NOT NULL DEFAULT 0');
+            // Evento al que pertenece el registro; NULL en las filas anteriores a los eventos
+            asegurarColumna($conn, 'evento_id', 'INT NULL');
+
+            // Catálogos que administra el admin (agencia/área se siguen guardando como texto en registros)
+            $conn->exec("CREATE TABLE IF NOT EXISTS agencias (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(100) NOT NULL UNIQUE
+            ) DEFAULT CHARSET=utf8mb4");
+            $conn->exec("CREATE TABLE IF NOT EXISTS areas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(100) NOT NULL UNIQUE
+            ) DEFAULT CHARSET=utf8mb4");
+            $conn->exec("CREATE TABLE IF NOT EXISTS eventos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nombre VARCHAR(150) NOT NULL,
+                fecha_inicio DATETIME NOT NULL,
+                fecha_fin DATETIME NOT NULL
+            ) DEFAULT CHARSET=utf8mb4");
         } catch(PDOException $e) {
             error_log('createTable: ' . $e->getMessage());
         }
     }
+}
+
+/** Ahora en hora de México, como «Y-m-d H:i:s» (el reloj de PHP, no el de MySQL). */
+function ahoraMexico() {
+    return date('Y-m-d H:i:s');
+}
+
+/**
+ * Eventos vigentes: fecha_inicio <= ahora <= fecha_fin (ambos extremos incluidos).
+ * La comparación usa el reloj de PHP (America/Mexico_City), nunca NOW() de MySQL.
+ */
+function eventosVigentes(PDO $conn, $ahora = null) {
+    $stmt = $conn->prepare(
+        'SELECT id, nombre, fecha_inicio, fecha_fin FROM eventos
+         WHERE fecha_inicio <= :ahora AND fecha_fin >= :ahora2
+         ORDER BY fecha_inicio, id'
+    );
+    $ahora = $ahora ?? ahoraMexico();
+    $stmt->execute([':ahora' => $ahora, ':ahora2' => $ahora]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Con el registro cerrado: el próximo evento (el que empieza antes) o, si no
+ * hay ninguno por venir, el último que terminó. Devuelve [fila|null, 'proximo'|'ultimo'|null].
+ */
+function eventoReferencia(PDO $conn, $ahora = null) {
+    $ahora = $ahora ?? ahoraMexico();
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin FROM eventos WHERE fecha_inicio > :ahora ORDER BY fecha_inicio, id LIMIT 1');
+    $stmt->execute([':ahora' => $ahora]);
+    $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($fila) {
+        return [$fila, 'proximo'];
+    }
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin FROM eventos WHERE fecha_fin < :ahora ORDER BY fecha_fin DESC, id DESC LIMIT 1');
+    $stmt->execute([':ahora' => $ahora]);
+    $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $fila ? [$fila, 'ultimo'] : [null, null];
 }
 ?>

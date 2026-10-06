@@ -20,6 +20,7 @@ const COLUMNAS_REGISTROS = [
     'fecha_registro' => 'Fecha de registro',
     'fecha_entrada'  => 'Fecha de entrada',
     'confirmado'     => 'Confirmado',
+    'evento'         => 'Evento',
 ];
 
 /**
@@ -34,6 +35,7 @@ const COLUMNAS_VISTA = [
     'area'           => 'Área',
     'correo'         => 'Correo',
     'id_ticket'      => 'ID Ticket',
+    'evento'         => 'Evento',
     'fecha_registro' => 'Fecha de registro',
 ];
 
@@ -118,6 +120,15 @@ function htmlEstado(array $fila) {
     return '<span class="pastilla entro">Entró</span><span class="fecha-entrada sec">' . h($fecha) . '</span>';
 }
 
+/** SELECT de registros con el nombre del evento (vacío en los registros sin evento). */
+function sqlSelectRegistros() {
+    $cols = [];
+    foreach (array_keys(COLUMNAS_REGISTROS) as $c) {
+        $cols[] = $c === 'evento' ? "COALESCE(e.nombre, '') AS evento" : "r.$c";
+    }
+    return 'SELECT r.id, ' . implode(', ', $cols) . ' FROM registros r LEFT JOIN eventos e ON e.id = r.evento_id';
+}
+
 /** Devuelve [filas, error]. */
 function obtenerRegistros() {
     $conn = getConnection();
@@ -126,8 +137,7 @@ function obtenerRegistros() {
     }
     try {
         createTable();
-        $columnas = implode(', ', array_keys(COLUMNAS_REGISTROS));
-        $filas = $conn->query("SELECT id, $columnas FROM registros ORDER BY fecha_registro DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $filas = $conn->query(sqlSelectRegistros() . ' ORDER BY r.fecha_registro DESC')->fetchAll(PDO::FETCH_ASSOC);
         return [$filas, null];
     } catch (PDOException $e) {
         error_log('registros.php: ' . $e->getMessage());
@@ -137,7 +147,7 @@ function obtenerRegistros() {
 
 /** Un registro por id numérico (o null si no existe). Lanza PDOException si falla la base. */
 function obtenerRegistroPorId(PDO $conn, $id) {
-    $stmt = $conn->prepare('SELECT id, ' . implode(', ', array_keys(COLUMNAS_REGISTROS)) . ' FROM registros WHERE id = :id');
+    $stmt = $conn->prepare(sqlSelectRegistros() . ' WHERE r.id = :id');
     $stmt->execute([':id' => $id]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     return $fila ?: null;
@@ -170,6 +180,254 @@ function validarCamposEdicion(array $entrada) {
         }
     }
     return [$valores, $errores];
+}
+
+/** Catálogos administrables: tipo => [tabla, singular, plural, vista, longitud máxima]. */
+const CATALOGOS = [
+    'agencia' => ['agencias', 'agencia', 'agencias', 'agencias', 100],
+    'area'    => ['areas',    'área',    'áreas',    'areas',    100],
+];
+const EVENTO_NOMBRE_MAX = 150;
+
+/** Nombre limpio y su error (o null). */
+function validarNombreCatalogo($valor, $max, $etiqueta) {
+    $valor = is_string($valor) ? trim(preg_replace('/\s+/u', ' ', $valor)) : '';
+    if ($valor === '') {
+        return [$valor, "El nombre de $etiqueta es obligatorio."];
+    }
+    if (mb_strlen($valor, 'UTF-8') > $max) {
+        return [$valor, "El nombre de $etiqueta no puede pasar de $max caracteres."];
+    }
+    return [$valor, null];
+}
+
+/** «Y-m-d\TH:i» (datetime-local) a «Y-m-d H:i:00»; null si no es una fecha real. */
+function fechaLocalADb($valor) {
+    if (!is_string($valor)) {
+        return null;
+    }
+    $valor = trim($valor);
+    foreach (['Y-m-d\TH:i', 'Y-m-d\TH:i:s', 'Y-m-d H:i', 'Y-m-d H:i:s'] as $formato) {
+        $d = DateTime::createFromFormat($formato, $valor);
+        if ($d && $d->format($formato) === $valor) {
+            return $d->format('Y-m-d H:i:00');
+        }
+    }
+    return null;
+}
+
+/** Valor de un DATETIME de MySQL para un input datetime-local. */
+function fechaDbALocal($valor) {
+    $ts = strtotime((string) $valor);
+    return $ts === false ? '' : date('Y-m-d\TH:i', $ts);
+}
+
+function fechaLegible($valor) {
+    $ts = strtotime((string) $valor);
+    return $ts === false ? (string) $valor : date('d/m/Y H:i', $ts);
+}
+
+/** Estado de un evento respecto a «ahora»: vigente, proximo o finalizado. */
+function estadoEvento(array $e, $ahora) {
+    if ($e['fecha_inicio'] > $ahora) {
+        return 'proximo';
+    }
+    return $e['fecha_fin'] >= $ahora ? 'vigente' : 'finalizado';
+}
+
+function mbPrimeraMayuscula($texto) {
+    return mb_strtoupper(mb_substr($texto, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($texto, 1, null, 'UTF-8');
+}
+
+/** Mensaje de borrado/alta listo para confirm() en JS. */
+function jsConfirm($texto) {
+    return h(json_encode($texto, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE));
+}
+
+/**
+ * Alta, edición y baja de agencias, áreas y eventos. Prepared statements siempre.
+ * Termina siempre con una redirección y un mensaje.
+ */
+function procesarCatalogo(PDO $conn, $accion, array $post) {
+    list($operacion, $tipo) = explode('_', $accion, 2);
+    $vista = $tipo === 'evento' ? 'eventos' : CATALOGOS[$tipo][3];
+    $id = idValido($post['id'] ?? null);
+    $sinId = !isset($post['id']) || $post['id'] === '';
+
+    try {
+        createTable();
+
+        if ($tipo === 'evento') {
+            if ($operacion === 'eliminar') {
+                if ($id === null) {
+                    volverConMensaje('error', 'Evento no válido.', $vista);
+                }
+                $conn->beginTransaction();
+                // Los registros viejos quedan sin evento (conservan todos sus datos)
+                $conn->prepare('UPDATE registros SET evento_id = NULL WHERE evento_id = :id')->execute([':id' => $id]);
+                $stmt = $conn->prepare('DELETE FROM eventos WHERE id = :id');
+                $stmt->execute([':id' => $id]);
+                $conn->commit();
+                volverConMensaje($stmt->rowCount() ? 'ok' : 'error', $stmt->rowCount() ? 'Evento eliminado.' : 'El evento ya no existe.', $vista);
+            }
+
+            list($nombre, $err) = validarNombreCatalogo($post['nombre'] ?? '', EVENTO_NOMBRE_MAX, 'el evento');
+            $inicio = fechaLocalADb($post['fecha_inicio'] ?? null);
+            $fin = fechaLocalADb($post['fecha_fin'] ?? null);
+            if ($err === null && ($inicio === null || $fin === null)) {
+                $err = 'Indica la fecha de inicio y la de fin del evento.';
+            } elseif ($err === null && $fin < $inicio) {
+                $err = 'La fecha de fin no puede ser anterior a la de inicio.';
+            }
+            if ($err !== null) {
+                volverConMensaje('error', $err, $vista);
+            }
+            if ($sinId) {
+                $conn->prepare('INSERT INTO eventos (nombre, fecha_inicio, fecha_fin) VALUES (:n, :i, :f)')
+                    ->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin]);
+                volverConMensaje('ok', 'Evento creado.', $vista);
+            }
+            if ($id === null) {
+                volverConMensaje('error', 'Evento no válido.', $vista);
+            }
+            $stmt = $conn->prepare('UPDATE eventos SET nombre = :n, fecha_inicio = :i, fecha_fin = :f WHERE id = :id');
+            $stmt->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':id' => $id]);
+            if (!$stmt->rowCount()) {
+                $existe = $conn->prepare('SELECT 1 FROM eventos WHERE id = :id');
+                $existe->execute([':id' => $id]);
+                if (!$existe->fetchColumn()) {
+                    volverConMensaje('error', 'El evento ya no existe.', $vista);
+                }
+            }
+            volverConMensaje('ok', 'Evento guardado.', $vista);
+        }
+
+        // Agencias y áreas (tabla de una lista blanca, nunca del cliente)
+        list($tabla, $singular, , , $max) = CATALOGOS[$tipo];
+        if ($operacion === 'eliminar') {
+            if ($id === null) {
+                volverConMensaje('error', "La $singular no es válida.", $vista);
+            }
+            $stmt = $conn->prepare("DELETE FROM $tabla WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            volverConMensaje($stmt->rowCount() ? 'ok' : 'error',
+                $stmt->rowCount() ? mbPrimeraMayuscula($singular) . ' eliminada. Los registros anteriores conservan su texto.' : "La $singular ya no existe.", $vista);
+        }
+
+        list($nombre, $err) = validarNombreCatalogo($post['nombre'] ?? '', $max, "la $singular");
+        if ($err !== null) {
+            volverConMensaje('error', $err, $vista);
+        }
+        if ($sinId) {
+            $conn->prepare("INSERT INTO $tabla (nombre) VALUES (:n)")->execute([':n' => $nombre]);
+            volverConMensaje('ok', mbPrimeraMayuscula($singular) . ' agregada.', $vista);
+        }
+        if ($id === null) {
+            volverConMensaje('error', "La $singular no es válida.", $vista);
+        }
+        $stmt = $conn->prepare("UPDATE $tabla SET nombre = :n WHERE id = :id");
+        $stmt->execute([':n' => $nombre, ':id' => $id]);
+        if (!$stmt->rowCount()) {
+            $existe = $conn->prepare("SELECT 1 FROM $tabla WHERE id = :id");
+            $existe->execute([':id' => $id]);
+            if (!$existe->fetchColumn()) {
+                volverConMensaje('error', "La $singular ya no existe.", $vista);
+            }
+        }
+        volverConMensaje('ok', mbPrimeraMayuscula($singular) . ' guardada.', $vista);
+    } catch (PDOException $e) {
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
+            volverConMensaje('error', 'Ya existe un elemento con ese nombre.', $vista);
+        }
+        error_log('registros.php catálogo: ' . $e->getMessage());
+        volverConMensaje('error', 'No se pudo completar la operación.', $vista);
+    }
+}
+
+/** Tarjetas de agencias o áreas: alta arriba y una tarjeta editable por elemento. */
+function renderCatalogoSimple($tipo, array $filas, $csrf) {
+    list(, $singular, $plural, , $max) = CATALOGOS[$tipo];
+    ?>
+    <section class="tarjeta cat-bloque">
+        <h2>Nueva <?= h($singular) ?></h2>
+        <form method="post" action="registros.php?vista=<?= h(CATALOGOS[$tipo][3]) ?>" class="cat-form">
+            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+            <label class="etiqueta sec" for="nuevo-<?= h($tipo) ?>">Nombre</label>
+            <input type="text" id="nuevo-<?= h($tipo) ?>" name="nombre" maxlength="<?= (int) $max ?>" required>
+            <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>">Agregar</button>
+        </form>
+    </section>
+    <?php if (!$filas): ?>
+        <div class="tarjeta vacio">Aún no hay <?= h($plural) ?>.</div>
+    <?php else: ?>
+    <ul class="cat-lista">
+        <?php foreach ($filas as $f): ?>
+        <li class="tarjeta cat-bloque">
+            <form method="post" action="registros.php?vista=<?= h(CATALOGOS[$tipo][3]) ?>" class="cat-form">
+                <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
+                <label class="etiqueta sec" for="<?= h($tipo) ?>-<?= (int) $f['id'] ?>">Nombre</label>
+                <input type="text" id="<?= h($tipo) ?>-<?= (int) $f['id'] ?>" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= (int) $max ?>" required>
+                <p class="sec cat-uso"><?= (int) $f['usos'] ?> registro<?= (int) $f['usos'] === 1 ? '' : 's' ?></p>
+                <div class="cat-botones">
+                    <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>">Guardar</button>
+                    <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_<?= h($tipo) ?>" formnovalidate
+                            onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);">Eliminar</button>
+                </div>
+            </form>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php endif;
+}
+
+/** Tarjetas de eventos: alta arriba y una tarjeta editable por evento. */
+function renderEventos(array $filas, $csrf, $ahora) {
+    $etiquetas = ['vigente' => 'Vigente', 'proximo' => 'Próximo', 'finalizado' => 'Finalizado'];
+    ?>
+    <section class="tarjeta cat-bloque">
+        <h2>Nuevo evento</h2>
+        <form method="post" action="registros.php?vista=eventos" class="cat-form">
+            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+            <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
+            <input type="text" id="nuevo-evento" name="nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
+            <label class="etiqueta sec" for="nuevo-inicio">Inicio (hora de México)</label>
+            <input type="datetime-local" id="nuevo-inicio" name="fecha_inicio" required>
+            <label class="etiqueta sec" for="nuevo-fin">Fin (hora de México)</label>
+            <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
+            <button type="submit" class="btn-primario" name="accion" value="guardar_evento">Agregar</button>
+        </form>
+    </section>
+    <?php if (!$filas): ?>
+        <div class="tarjeta vacio">Aún no hay eventos. Sin un evento vigente, el registro público permanece cerrado.</div>
+    <?php else: ?>
+    <ul class="cat-lista">
+        <?php foreach ($filas as $f): $estado = estadoEvento($f, $ahora); $i = (int) $f['id']; ?>
+        <li class="tarjeta cat-bloque">
+            <form method="post" action="registros.php?vista=eventos" class="cat-form">
+                <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                <input type="hidden" name="id" value="<?= $i ?>">
+                <p class="cat-estado"><span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span>
+                    <span class="sec"><?= (int) $f['usos'] ?> registro<?= (int) $f['usos'] === 1 ? '' : 's' ?></span></p>
+                <label class="etiqueta sec" for="evento-<?= $i ?>">Nombre</label>
+                <input type="text" id="evento-<?= $i ?>" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
+                <label class="etiqueta sec" for="inicio-<?= $i ?>">Inicio (hora de México)</label>
+                <input type="datetime-local" id="inicio-<?= $i ?>" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required>
+                <label class="etiqueta sec" for="fin-<?= $i ?>">Fin (hora de México)</label>
+                <input type="datetime-local" id="fin-<?= $i ?>" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required>
+                <div class="cat-botones">
+                    <button type="submit" class="btn-primario" name="accion" value="guardar_evento">Guardar</button>
+                    <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_evento" formnovalidate
+                            onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);">Eliminar</button>
+                </div>
+            </form>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php endif;
 }
 
 if (defined('REGISTROS_SOLO_FUNCIONES')) {
@@ -205,9 +463,9 @@ function responderTexto($codigo, $texto) {
 }
 
 /** Guarda un mensaje para mostrarlo tras la redirección y vuelve a la tabla. */
-function volverConMensaje($tipo, $texto) {
+function volverConMensaje($tipo, $texto, $vista = null) {
     $_SESSION['flash'] = ['tipo' => $tipo, 'texto' => $texto];
-    header('Location: registros.php');
+    header('Location: registros.php' . ($vista ? '?vista=' . rawurlencode($vista) : ''));
     exit;
 }
 
@@ -235,7 +493,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             http_response_code(401);
             $errorLogin = 'Contraseña incorrecta';
         }
-    } elseif ($accion === 'salir' || $accion === 'guardar' || $accion === 'eliminar') {
+    } elseif ($accion === 'salir' || $accion === 'guardar' || $accion === 'eliminar'
+        || preg_match('/^(guardar|eliminar)_(agencia|area|evento)$/', (string) $accion)) {
         if (!$autenticado) {
             if ($accion === 'salir') {
                 header('Location: registros.php');
@@ -269,6 +528,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn = getConnection();
         if (!$conn) {
             volverConMensaje('error', 'No se pudo conectar a la base de datos.');
+        }
+
+        if (preg_match('/^(guardar|eliminar)_(agencia|area|evento)$/', $accion)) {
+            procesarCatalogo($conn, $accion, $_POST);
         }
 
         try {
@@ -332,11 +595,42 @@ if (isset($_GET['editar']) && !$autenticado) {
     http_response_code(401);
 }
 
-// Vista: «tabla» (por defecto) o «escanear». Editar siempre es de la tabla.
-$vista = (($_GET['vista'] ?? '') === 'escanear' && !isset($_GET['editar'])) ? 'escanear' : 'tabla';
+// Vista: «tabla» (por defecto), «escanear», «agencias», «areas» o «eventos». Editar siempre es de la tabla.
+$vistaPedida = (string) ($_GET['vista'] ?? '');
+$vista = (in_array($vistaPedida, ['escanear', 'agencias', 'areas', 'eventos'], true) && !isset($_GET['editar'])) ? $vistaPedida : 'tabla';
+const TITULOS_VISTA = ['tabla' => 'Registros', 'escanear' => 'Escanear', 'agencias' => 'Agencias', 'areas' => 'Áreas', 'eventos' => 'Eventos'];
 
 $filas = [];
 $errorDatos = null;
+$ahoraAdmin = date('Y-m-d H:i:s');
+
+// Catálogos (agencias, áreas, eventos): lista con cuántos registros usan cada elemento.
+if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
+    $conn = getConnection();
+    if (!$conn) {
+        $errorDatos = 'No se pudo conectar a la base de datos.';
+    } else {
+        try {
+            createTable();
+            if ($vista === 'eventos') {
+                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin,
+                        (SELECT COUNT(*) FROM registros r WHERE r.evento_id = e.id) AS usos
+                    FROM eventos e ORDER BY e.fecha_inicio DESC, e.id DESC')->fetchAll(PDO::FETCH_ASSOC);
+            } elseif ($vista === 'agencias') {
+                $filas = $conn->query('SELECT a.id, a.nombre,
+                        (SELECT COUNT(*) FROM registros r WHERE r.agencia = a.nombre) AS usos
+                    FROM agencias a ORDER BY a.nombre')->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $filas = $conn->query('SELECT a.id, a.nombre,
+                        (SELECT COUNT(*) FROM registros r WHERE r.area = a.nombre) AS usos
+                    FROM areas a ORDER BY a.nombre')->fetchAll(PDO::FETCH_ASSOC);
+            }
+        } catch (PDOException $e) {
+            error_log('registros.php: ' . $e->getMessage());
+            $errorDatos = 'No se pudo leer la información.';
+        }
+    }
+}
 if ($autenticado && $vista === 'tabla') {
     list($filas, $errorDatos) = obtenerRegistros();
 
@@ -378,7 +672,7 @@ if ($autenticado && $vista === 'tabla') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title><?= $vista === 'escanear' ? 'Escanear' : 'Registros' ?></title>
+    <title><?= h(TITULOS_VISTA[$vista]) ?></title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -614,8 +908,9 @@ if ($autenticado && $vista === 'tabla') {
             .edicion .btn-primario, .edicion .btn-sec { width: auto; }
         }
 
-        /* Pestañas Tabla / Escanear: grandes y fáciles de tocar en el celular */
+        /* Pestañas: grandes y fáciles de tocar en el celular (2 columnas; la última ocupa todo el ancho si queda sola) */
         .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .tab:last-child:nth-child(odd) { grid-column: 1 / -1; }
         .tab {
             display: flex;
             align-items: center;
@@ -634,9 +929,47 @@ if ($autenticado && $vista === 'tabla') {
         .tab[aria-current="page"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
         .tab:not([aria-current="page"]):hover { background: #f4f5f7; }
         #vistaEscaner { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); padding: 16px; }
+        /* Administración de agencias, áreas y eventos */
+        .catalogo { max-width: 640px; margin: 0 auto; }
+        .cat-lista { list-style: none; margin: 0; padding: 0; }
+        .cat-bloque { padding: 20px 16px; margin-bottom: 12px; }
+        .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
+        .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+        .cat-form label { margin-top: 10px; }
+        .cat-form label:first-of-type { margin-top: 0; }
+        .cat-form input[type=text], .cat-form input[type=datetime-local] {
+            width: 100%;
+            height: 52px;
+            border: 0;
+            background: #eef0f3;
+            padding: 0 14px;
+            font: inherit;
+            font-size: 16px;
+            color: #212529;
+            border-radius: 0;
+        }
+        .cat-form input:focus { outline: 2px solid #adb5bd; }
+        .cat-form > .btn-primario { margin-top: 14px; }
+        .cat-uso, .cat-estado { margin: 4px 0 0; font-size: 13px; }
+        .cat-estado { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+        .cat-botones { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+        .cat-botones button { width: 100%; }
+        .btn-peligro { color: #b02a37; }
+        .pastilla.vigente { background: #1a1a1a; color: #fff; }
+        .pastilla.proximo { background: #fff; color: #212529; border: 1px solid #adb5bd; }
+        .pastilla.finalizado { background: #eef0f3; color: #6c757d; }
         @media (min-width: 768px) {
-            .tab { height: 48px; font-size: 13px; }
-            .tabs { max-width: 420px; }
+            .cat-form input[type=text], .cat-form input[type=datetime-local] { height: 40px; padding: 0 12px; font-size: 14px; }
+            .cat-bloque { padding: 24px; }
+            .cat-bloque h2 { font-size: 16px; }
+            .cat-botones { flex-direction: row; }
+            .cat-botones button { width: auto; min-width: 140px; }
+            .cat-form > .btn-primario { align-self: flex-start; min-width: 140px; width: auto; }
+        }
+        @media (min-width: 768px) {
+            .tab { height: 48px; font-size: 13px; padding: 0 20px; }
+            .tabs { display: flex; flex-wrap: wrap; }
+            .tab:last-child:nth-child(odd) { grid-column: auto; }
             #vistaEscaner { padding: 28px; }
         }
     </style>
@@ -668,7 +1001,7 @@ if ($autenticado && $vista === 'tabla') {
             <?php if ($vista === 'tabla'): ?>
                 <h1>Registros <span class="sec" style="font-weight:400;font-size:14px;">(<?= count($filas) ?>)</span></h1>
             <?php else: ?>
-                <h1>Escanear</h1>
+                <h1><?= h(TITULOS_VISTA[$vista]) ?></h1>
             <?php endif; ?>
             </div>
             <div class="acciones">
@@ -686,6 +1019,9 @@ if ($autenticado && $vista === 'tabla') {
         <nav class="tabs" aria-label="Vista">
             <a class="tab" href="registros.php"<?= $vista === 'tabla' ? ' aria-current="page"' : '' ?>>Tabla</a>
             <a class="tab" href="registros.php?vista=escanear"<?= $vista === 'escanear' ? ' aria-current="page"' : '' ?>>Escanear</a>
+            <a class="tab" href="registros.php?vista=agencias"<?= $vista === 'agencias' ? ' aria-current="page"' : '' ?>>Agencias</a>
+            <a class="tab" href="registros.php?vista=areas"<?= $vista === 'areas' ? ' aria-current="page"' : '' ?>>Áreas</a>
+            <a class="tab" href="registros.php?vista=eventos"<?= $vista === 'eventos' ? ' aria-current="page"' : '' ?>>Eventos</a>
         </nav>
 
         <?php if ($mensaje): ?>
@@ -753,6 +1089,16 @@ if ($autenticado && $vista === 'tabla') {
             <div id="confirmSection" class="confirm-section" style="display: none;">
                 <div id="confirmContent"></div>
             </div>
+        </div>
+        <?php elseif ($vista === 'agencias' || $vista === 'areas' || $vista === 'eventos'): ?>
+        <div class="catalogo">
+            <?php if ($errorDatos): ?>
+                <div class="tarjeta aviso" role="alert"><?= h($errorDatos) ?></div>
+            <?php elseif ($vista === 'eventos'): ?>
+                <?php renderEventos($filas, $csrf, $ahoraAdmin); ?>
+            <?php else: ?>
+                <?php renderCatalogoSimple($vista === 'agencias' ? 'agencia' : 'area', $filas, $csrf); ?>
+            <?php endif; ?>
         </div>
         <?php else: ?>
 

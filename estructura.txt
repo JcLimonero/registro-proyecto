@@ -8,10 +8,11 @@ registro-proyecto/
 ├── escaner.html            # Solo redirige a registros.php (el escáner vive dentro del admin)
 ├── escaner.js
 ├── escaner.css
-├── registros.php           # Tabla de registros protegida con contraseña + descarga Excel (.xls)
+├── registros.php           # Admin con contraseña: tabla + Excel, escáner, agencias, áreas y eventos
 ├── backend/
 │   ├── config.php          # Config por entorno (.env) y esquema MySQL
-│   ├── registrar.php       # Guarda el registro
+│   ├── registrar.php       # Guarda el registro (solo dentro del periodo de un evento)
+│   ├── catalogos.php       # JSON público: agencias, áreas y eventos vigentes
 │   ├── enviar-correo.php   # Envía el correo con el QR (PHPMailer + Endroid)
 │   ├── generar-qr.php      # Devuelve un QR en PNG (?text=...)
 │   ├── validar-asistencia.php  # Marca la entrada de un ticket

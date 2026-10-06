@@ -1,12 +1,18 @@
 /*
- * Registro — mobile first.
- * Base = teléfono (una columna, controles grandes, campos de 16px para que
- * iOS no haga zoom). Desde 768px se centra y se limita el ancho.
+ * Registro — marca Grupo Vanguardia, mobile first.
+ * Lienzo #f4f5f7, tarjeta blanca, texto #212529 / secundario #6c757d,
+ * acento #1a1a1a (hover #2a2a2a), bordes #adb5bd, campos #eef0f3. Montserrat.
+ * Base = teléfono (una columna, controles altos, campos de 16px para que
+ * iOS no haga zoom). Desde 768px la tarjeta se centra con ancho máximo.
  */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
 }
 
 html {
@@ -15,26 +21,27 @@ html {
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    background-attachment: fixed;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #212529;
+    background: #f4f5f7;
     min-height: 100vh;
     min-height: 100dvh;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 12px 12px 48px;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
 }
 
 .container {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    padding: 20px 16px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 24px 16px;
     width: 100%;
-    max-width: 600px;
-    position: relative;
+    max-width: 480px;
+    margin: auto 0;
 }
 
 button {
@@ -42,11 +49,57 @@ button {
     touch-action: manipulation;
 }
 
+/* ---------- Marca ---------- */
+.marca {
+    display: block;
+    width: 152px;
+    height: 36px;
+    margin: 0 auto 20px;
+    background: #1a1a1a;
+    -webkit-mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
+    mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
+}
+
 h1 {
-    color: #333;
-    margin-bottom: 20px;
+    color: #212529;
     text-align: center;
-    font-size: 1.6rem;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.subtitulo {
+    color: #6c757d;
+    text-align: center;
+    font-weight: 500;
+    margin: -12px 0 20px;
+    overflow-wrap: anywhere;
+}
+
+.estado-carga {
+    color: #6c757d;
+    text-align: center;
+    padding: 16px 0;
+}
+
+/* ---------- Registro cerrado ---------- */
+.aviso-cerrado {
+    background: #eef0f3;
+    border-left: 4px solid #1a1a1a;
+    padding: 20px 16px;
+    color: #212529;
+}
+
+.aviso-cerrado h2 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+}
+
+.aviso-cerrado p {
+    overflow-wrap: anywhere;
 }
 
 /* ---------- Formulario ---------- */
@@ -57,72 +110,120 @@ h1 {
 .form-group label {
     display: block;
     margin-bottom: 6px;
-    color: #555;
+    color: #6c757d;
+    font-size: 12px;
     font-weight: 600;
-    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     width: 100%;
-    min-height: 52px;
-    padding: 12px 14px;
-    border: 2px solid #ddd;
-    border-radius: 10px;
+    height: 52px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 0;
+    background: #eef0f3;
+    color: #212529;
+    font: inherit;
     font-size: 16px;
-    transition: border-color 0.3s;
 }
 
-.form-group input:focus {
-    outline: none;
-    border-color: #667eea;
+.form-group select {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%231a1a1a' stroke-width='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    text-overflow: ellipsis;
 }
 
-.btn-submit {
+.form-group input:focus,
+.form-group select:focus {
+    outline: 2px solid #adb5bd;
+    outline-offset: 0;
+}
+
+.error-form {
+    color: #b02a37;
+    margin-bottom: 16px;
+    overflow-wrap: anywhere;
+}
+
+/* ---------- Botones ---------- */
+.btn-submit,
+.btn-download,
+.btn-new {
+    display: block;
     width: 100%;
-    min-height: 56px;
-    padding: 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.15rem;
+    height: 52px;
+    padding: 0 20px;
+    border-radius: 0;
+    font-size: 12px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     cursor: pointer;
-    transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+.btn-submit,
+.btn-new {
+    background: #1a1a1a;
+    color: #fff;
+    border: 0;
 }
 
-.btn-submit:active {
-    transform: translateY(0);
+.btn-submit:hover:not(:disabled),
+.btn-new:hover {
+    background: #2a2a2a;
+}
+
+.btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-download {
+    background: #fff;
+    color: #212529;
+    border: 1px solid #adb5bd;
+    margin-top: 16px;
+}
+
+.btn-download:hover {
+    background: #f4f5f7;
+}
+
+.btn-new {
+    margin-top: 12px;
 }
 
 /* ---------- Confirmación y QR ---------- */
 .confirmation-card {
-    background: #f8f9fa;
-    border-radius: 14px;
+    background: #f4f5f7;
     padding: 16px;
     margin: 16px 0;
 }
 
 .ticket-info h3 {
-    color: #667eea;
-    font-size: 1.3rem;
+    color: #212529;
+    font-size: 16px;
+    font-weight: 700;
     margin-bottom: 12px;
     overflow-wrap: anywhere;
 }
 
 .ticket-info p {
     margin: 8px 0;
-    color: #555;
+    color: #6c757d;
     overflow-wrap: anywhere;
 }
 
 .ticket-info strong {
-    color: #333;
+    color: #212529;
+    font-weight: 600;
 }
 
 .qr-container {
@@ -131,8 +232,8 @@ h1 {
     align-items: center;
     margin-top: 16px;
     padding: 16px;
-    background: white;
-    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #adb5bd;
 }
 
 /* El QR ocupa el ancho disponible (con tope para escritorio) */
@@ -149,125 +250,55 @@ h1 {
     image-rendering: pixelated;
 }
 
-.btn-download {
-    width: 100%;
-    min-height: 52px;
-    margin-top: 16px;
-    padding: 12px 24px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.btn-download:hover {
-    background: #218838;
-}
-
-.btn-new {
-    width: 100%;
-    min-height: 56px;
-    padding: 14px;
-    background: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.15rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.3s;
-    margin-top: 12px;
-}
-
-.btn-new:hover {
-    background: #5a6268;
-}
-
-.loading {
-    text-align: center;
-    padding: 20px;
-    color: #667eea;
-}
-
-.loading::after {
-    content: '...';
-    animation: dots 1.5s steps(4, end) infinite;
-}
-
-@keyframes dots {
-    0% { content: ''; }
-    25% { content: '.'; }
-    50% { content: '..'; }
-    75% { content: '...'; }
-}
-
 /* ---------- Pie ---------- */
 .pie {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 14px;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 2px;
+    padding: 16px 0 4px;
 }
 
 .pie a {
-    color: rgba(255, 255, 255, 0.28);
-    font-size: 11px;
+    color: #6c757d;
+    font-size: 12px;
     font-weight: 400;
     letter-spacing: 0.04em;
     text-decoration: none;
-    padding: 6px 4px;
+    padding: 6px 8px;
 }
 
 .pie a:hover {
-    color: rgba(255, 255, 255, 0.55);
+    color: #212529;
 }
 
-/* ---------- Escritorio: mismo diseño, centrado y sin estirarse ---------- */
+/* ---------- Escritorio: la tarjeta se centra y no se estira ---------- */
 @media (min-width: 768px) {
     body {
-        align-items: center;
         padding: 24px;
     }
 
     .container {
         padding: 40px;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
 
-    h1 {
-        margin-bottom: 30px;
-        font-size: 2rem;
+    .form-group input,
+    .form-group select {
+        height: 44px;
+        padding: 0 12px;
+        font-size: 14px;
     }
 
-    .form-group {
-        margin-bottom: 20px;
+    .form-group select {
+        padding-right: 40px;
+    }
+
+    .btn-submit,
+    .btn-download,
+    .btn-new {
+        height: 44px;
     }
 
     .confirmation-card {
-        padding: 25px;
-        margin: 20px 0;
-    }
-
-    .ticket-info h3 {
-        font-size: 1.5rem;
-    }
-
-    .qr-container {
-        margin-top: 20px;
-        padding: 20px;
-    }
-
-    .btn-download {
-        width: auto;
-        min-width: 220px;
+        padding: 24px;
     }
 }
