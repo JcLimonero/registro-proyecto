@@ -9,6 +9,158 @@ function escapeHtml(valor) {
 
 let procesando = false;
 let ultimosEscaneos = [];
+let temporizadorAviso = null;
+
+// Bloqueo corto para no repetir el mismo QR mientras sigue en cuadro
+const BLOQUEO_MISMO_CODIGO_MS = 4000;
+const AVISO_YA_REGISTRADO_MS = 4000;
+
+// Cámara: lectura de QR con html5-qrcode (CDN)
+const camara = {
+    scanner: null,
+    activa: false,      // el usuario la quiere encendida
+    iniciando: false,
+    ultimoCodigo: '',
+    ultimoTiempo: 0,
+    alLeer: null        // se asigna dentro de DOMContentLoaded
+};
+
+function mensajeCamara(texto, tipo) {
+    const el = document.getElementById('cameraStatus');
+    if (!el) return;
+    el.textContent = texto || '';
+    el.className = 'camera-status' + (tipo ? ' ' + tipo : '');
+}
+
+function actualizarBotonCamara() {
+    const btn = document.getElementById('btnCamera');
+    const placeholder = document.getElementById('cameraPlaceholder');
+    if (btn) {
+        btn.textContent = camara.activa ? 'Apagar cámara' : 'Encender cámara';
+        btn.disabled = camara.iniciando;
+    }
+    if (placeholder) {
+        placeholder.style.display = camara.activa ? 'none' : 'flex';
+    }
+}
+
+function textoError(err) {
+    if (!err) return '';
+    return String(err.name ? err.name + ' ' : '') + String(err.message || err);
+}
+
+async function encenderCamara() {
+    if (camara.activa || camara.iniciando) return;
+
+    if (typeof Html5Qrcode === 'undefined') {
+        mensajeCamara('No se pudo cargar el lector de cámara. Usa el lector o escribe el código.', 'error');
+        return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        mensajeCamara('Este navegador no permite usar la cámara (se requiere HTTPS). Usa el lector o escribe el código.', 'error');
+        return;
+    }
+
+    camara.iniciando = true;
+    actualizarBotonCamara();
+    mensajeCamara('Solicitando acceso a la cámara...', 'info');
+
+    try {
+        if (!camara.scanner) {
+            camara.scanner = new Html5Qrcode('qrReader');
+        }
+        await camara.scanner.start(
+            { facingMode: 'environment' },
+            {
+                fps: 10,
+                qrbox: function(ancho, alto) {
+                    const lado = Math.floor(Math.min(ancho, alto) * 0.7);
+                    return { width: lado, height: lado };
+                }
+            },
+            function(texto) {
+                if (camara.alLeer) camara.alLeer(texto);
+            },
+            function() { /* sin QR en el cuadro: ignorar */ }
+        );
+        camara.activa = true;
+        mensajeCamara('Cámara activa. Apunta al código QR.', 'ok');
+    } catch (err) {
+        camara.activa = false;
+        const detalle = textoError(err);
+        console.error('Error de cámara:', err);
+        if (/NotAllowed|Permission|denied/i.test(detalle)) {
+            mensajeCamara('Permiso de cámara denegado. Habilítalo en el navegador o usa el lector / escribe el código.', 'error');
+        } else if (/NotFound|No camera|Requested device not found|OverconstrainedError/i.test(detalle)) {
+            mensajeCamara('No se encontró ninguna cámara. Usa el lector o escribe el código.', 'error');
+        } else if (/NotReadable|TrackStart|in use/i.test(detalle)) {
+            mensajeCamara('La cámara está en uso por otra aplicación. Ciérrala o usa el lector.', 'error');
+        } else {
+            mensajeCamara('No se pudo iniciar la cámara. Usa el lector o escribe el código.', 'error');
+        }
+    } finally {
+        camara.iniciando = false;
+        actualizarBotonCamara();
+    }
+}
+
+async function apagarCamara() {
+    if (!camara.scanner || !camara.activa) {
+        camara.activa = false;
+        actualizarBotonCamara();
+        return;
+    }
+    camara.activa = false;
+    try {
+        await camara.scanner.stop();
+        camara.scanner.clear();
+    } catch (err) {
+        console.error('Error al apagar la cámara:', err);
+    }
+    mensajeCamara('Cámara apagada.', '');
+    actualizarBotonCamara();
+}
+
+function pausarCamara() {
+    if (!camara.scanner || !camara.activa) return;
+    try {
+        camara.scanner.pause(true);
+    } catch (err) {
+        // ya estaba en pausa o no está escaneando
+    }
+}
+
+async function reanudarCamara() {
+    if (!camara.scanner || !camara.activa) return;
+    // Bloqueo corto: el mismo QR sigue en cuadro al volver a escanear
+    camara.ultimoTiempo = Date.now();
+    try {
+        camara.scanner.resume();
+    } catch (err) {
+        // Si no se pudo reanudar, reiniciar la cámara
+        camara.activa = false;
+        try { await camara.scanner.stop(); } catch (e) { /* ignorar */ }
+        await encenderCamara();
+    }
+}
+
+function lecturaCamara(texto, validar) {
+    const codigo = String(texto || '').trim();
+    if (!codigo || procesando) return;
+
+    const ahora = Date.now();
+    if (codigo === camara.ultimoCodigo && ahora - camara.ultimoTiempo < BLOQUEO_MISMO_CODIGO_MS) {
+        return;
+    }
+    camara.ultimoCodigo = codigo;
+    camara.ultimoTiempo = ahora;
+
+    procesando = true;
+    validar(codigo);
+}
+
+// En pantallas táctiles no se fuerza el foco (abriría el teclado en cada momento)
+const esTactil = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
 document.addEventListener('DOMContentLoaded', function() {
     const ticketInput = document.getElementById('ticketInput');
@@ -23,13 +175,30 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(cargarEstadisticas, 30000);
 
     function mantenerFoco() {
-        if (confirmSection.style.display === 'none') {
+        if (!esTactil && confirmSection.style.display === 'none') {
             ticketInput.focus();
         }
     }
 
     setInterval(mantenerFoco, 500);
-    document.addEventListener('click', mantenerFoco);
+    document.addEventListener('click', function(e) {
+        if (e.target.closest && e.target.closest('#btnCamera')) return;
+        mantenerFoco();
+    });
+
+    camara.alLeer = function(texto) {
+        lecturaCamara(texto, validarTicket);
+    };
+
+    document.getElementById('btnCamera').addEventListener('click', function() {
+        if (camara.activa) {
+            apagarCamara();
+        } else {
+            encenderCamara();
+        }
+    });
+    actualizarBotonCamara();
+    encenderCamara();
 
     ticketInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -73,6 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function validarTicket(idTicket) {
+        pausarCamara();
         scanResult.className = 'scan-result info';
         scanResult.textContent = '⏳ Validando ticket...';
 
@@ -109,7 +279,8 @@ document.addEventListener('DOMContentLoaded', function() {
             scanResult.className = 'scan-result error';
             scanResult.textContent = '❌ Error de conexión al validar';
             procesando = false;
-            ticketInput.focus();
+            reanudarCamara();
+            if (!esTactil) ticketInput.focus();
         }
     }
 
@@ -207,11 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </button>
         `;
 
-        setTimeout(() => {
-            if (confirmSection.style.display !== 'none') {
-                nuevoEscaneo();
-            }
-        }, 3000);
+        programarRegreso(3000);
     }
 
     function mostrarYaRegistrado(data) {
@@ -242,6 +409,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 Escanear siguiente
             </button>
         `;
+
+        programarRegreso(AVISO_YA_REGISTRADO_MS);
     }
 
     function mostrarError(mensaje) {
@@ -257,20 +426,27 @@ document.addEventListener('DOMContentLoaded', function() {
             </button>
         `;
 
-        setTimeout(() => {
+        programarRegreso(2000);
+    }
+
+    function programarRegreso(ms) {
+        clearTimeout(temporizadorAviso);
+        temporizadorAviso = setTimeout(() => {
             if (confirmSection.style.display !== 'none') {
                 nuevoEscaneo();
             }
-        }, 2000);
+        }, ms);
     }
 });
 
 function nuevoEscaneo() {
+    clearTimeout(temporizadorAviso);
     document.getElementById('scanSection').style.display = 'block';
     document.getElementById('confirmSection').style.display = 'none';
     document.getElementById('scanResult').className = 'scan-result info';
-    document.getElementById('scanResult').textContent = '✅ Listo para escanear. Pasa el código QR por el lector.';
+    document.getElementById('scanResult').textContent = '✅ Listo para escanear. Escanea el QR con la cámara o el lector.';
     document.getElementById('ticketInput').value = '';
-    document.getElementById('ticketInput').focus();
+    if (!esTactil) document.getElementById('ticketInput').focus();
     procesando = false;
+    reanudarCamara();
 }

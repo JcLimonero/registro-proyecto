@@ -37,7 +37,16 @@
             <div class="header">
                 <div class="marca" role="img" aria-label="Grupo Vanguardia"></div>
                 <h1>Confirmar Entrada</h1>
-                <p>Escanea el código QR con el lector</p>
+                <p>Apunta la cámara al código QR o usa el lector</p>
+            </div>
+
+            <div class="camera-section">
+                <div id="cameraBox" class="camera-box">
+                    <div id="qrReader"></div>
+                    <div id="cameraPlaceholder" class="camera-placeholder">📷 Cámara apagada</div>
+                </div>
+                <div id="cameraStatus" class="camera-status"></div>
+                <button type="button" id="btnCamera" class="btn-camera">Encender cámara</button>
             </div>
 
             <div class="input-container">
@@ -52,7 +61,7 @@
             </div>
 
             <div id="scanResult" class="scan-result info">
-                ✅ Listo para escanear. Pasa el código QR por el lector.
+                ✅ Listo para escanear. Escanea el QR con la cámara o el lector.
             </div>
 
             <div class="recent-scans">
@@ -68,6 +77,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="escaner.js"></script>
 </body>
 </html>

@@ -136,6 +136,82 @@ body {
     font-size: 1rem;
 }
 
+.camera-section {
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.camera-box {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    min-height: 120px;
+    margin: 0 auto 12px;
+    border-radius: 15px;
+    overflow: hidden;
+    background: #1a1a1a;
+}
+
+#qrReader {
+    width: 100%;
+}
+
+#qrReader video {
+    width: 100% !important;
+    display: block;
+}
+
+.camera-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bbb;
+    font-weight: 600;
+}
+
+.camera-status {
+    min-height: 1.3em;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #666;
+}
+
+.camera-status.ok {
+    color: #155724;
+}
+
+.camera-status.error {
+    color: #721c24;
+}
+
+.camera-status.info {
+    color: #0c5460;
+}
+
+.btn-camera {
+    padding: 12px 26px;
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-camera:hover:not(:disabled) {
+    background: #333;
+}
+
+.btn-camera:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
 .input-container {
     position: relative;
     margin-bottom: 25px;
