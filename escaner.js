@@ -1,3 +1,12 @@
+function escapeHtml(valor) {
+    return String(valor === null || valor === undefined ? '' : valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 let procesando = false;
 let ultimosEscaneos = [];
 
@@ -148,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         recentList.innerHTML = ultimosEscaneos.map(item => `
             <div class="recent-item ${item.clase}">
-                <span class="nombre">${item.icono} ${item.nombre}</span>
+                <span class="nombre">${item.icono} ${escapeHtml(item.nombre)}</span>
                 <span class="hora">${item.hora}</span>
             </div>
         `).join('');
@@ -165,31 +174,31 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="info-box">
                 <div class="info-row">
                     <strong>Nombre:</strong>
-                    <span>${data.nombre}</span>
+                    <span>${escapeHtml(data.nombre)}</span>
                 </div>
                 <div class="info-row">
                     <strong>No. Empleado:</strong>
-                    <span>${data.num_empleado}</span>
+                    <span>${escapeHtml(data.num_empleado)}</span>
                 </div>
                 <div class="info-row">
                     <strong>Agencia:</strong>
-                    <span>${data.agencia}</span>
+                    <span>${escapeHtml(data.agencia)}</span>
                 </div>
                 <div class="info-row">
                     <strong>Puesto:</strong>
-                    <span>${data.puesto}</span>
+                    <span>${escapeHtml(data.puesto)}</span>
                 </div>
                 <div class="info-row">
                     <strong>Área:</strong>
-                    <span>${data.area}</span>
+                    <span>${escapeHtml(data.area)}</span>
                 </div>
                 <div class="info-row">
                     <strong>ID Ticket:</strong>
-                    <span>${data.id_ticket}</span>
+                    <span>${escapeHtml(data.id_ticket)}</span>
                 </div>
                 <div class="info-row">
                     <strong>Fecha de Entrada:</strong>
-                    <span>${data.fecha_entrada}</span>
+                    <span>${escapeHtml(data.fecha_entrada)}</span>
                 </div>
             </div>
             
@@ -216,15 +225,15 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="info-box">
                 <div class="info-row">
                     <strong>Nombre:</strong>
-                    <span>${data.nombre}</span>
+                    <span>${escapeHtml(data.nombre)}</span>
                 </div>
                 <div class="info-row">
                     <strong>No. Empleado:</strong>
-                    <span>${data.num_empleado}</span>
+                    <span>${escapeHtml(data.num_empleado)}</span>
                 </div>
                 <div class="info-row">
                     <strong>Entrada Anterior:</strong>
-                    <span>${data.fecha_entrada}</span>
+                    <span>${escapeHtml(data.fecha_entrada)}</span>
                 </div>
             </div>
             
@@ -245,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="confirm-card error">
                 <div class="confirm-icon">❌</div>
                 <h2>Ticket No Válido</h2>
-                <p>${mensaje}</p>
+                <p>${escapeHtml(mensaje)}</p>
             </div>
             
             <button class="btn-new-scan" onclick="nuevoEscaneo()">

@@ -1,11 +1,19 @@
 registro-proyecto/
-├── index.html
+├── index.html              # Formulario de registro
 ├── style.css
 ├── script.js
+├── escaner.html            # Pantalla del escáner QR (entrada al evento)
+├── escaner.js
+├── escaner.css
 ├── backend/
-│   ├── config.php
-│   ├── registrar.php
-│   ├── enviar-correo.php
-│   └── generar-qr.php
-└── vendor/
-    └── (bibliotecas PHP)
+│   ├── config.php          # Config por entorno (.env) y esquema MySQL
+│   ├── registrar.php       # Guarda el registro
+│   ├── enviar-correo.php   # Envía el correo con el QR (PHPMailer + Endroid)
+│   ├── generar-qr.php      # Devuelve un QR en PNG (?text=...)
+│   ├── validar-asistencia.php  # Marca la entrada de un ticket
+│   └── estadisticas.php    # Totales: registrados, confirmados, pendientes
+├── composer.json
+├── composer.lock
+├── .env.example            # Plantilla de variables de entorno
+├── CLAUDE.md
+└── vendor/                 # Generado por `composer install` (no se versiona)
