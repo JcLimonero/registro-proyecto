@@ -41,8 +41,9 @@ define('DB_USER', envOr('DB_USER', 'root'));
 define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
 define('DB_NAME', envOr('DB_NAME', 'registro_proyecto'));
 
-// Contraseña de la pantalla de registros (/registros.php)
-define('ADMIN_PASSWORD', envOr('ADMIN_PASSWORD', 'Vanguardia123'));
+// Contraseña de la pantalla de registros (/registros.php). Solo del entorno/.env:
+// sin valor, el acceso queda deshabilitado (no hay default en el repo).
+define('ADMIN_PASSWORD', envOr('ADMIN_PASSWORD', ''));
 
 define('SMTP_HOST', envOr('SMTP_HOST', 'smtp.gmail.com'));
 define('SMTP_PORT', (int) envOr('SMTP_PORT', 587));

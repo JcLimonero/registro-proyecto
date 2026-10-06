@@ -129,15 +129,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($accion === 'entrar') {
         $clave = (string) ($_POST['password'] ?? '');
-        if (hash_equals((string) ADMIN_PASSWORD, $clave)) {
+        if (ADMIN_PASSWORD === '') {
+            http_response_code(503);
+            $errorLogin = 'El acceso no está configurado';
+        } elseif (hash_equals((string) ADMIN_PASSWORD, $clave)) {
             session_regenerate_id(true);
             $_SESSION['registros_ok'] = true;
             header('Location: registros.php');
             exit;
+        } else {
+            usleep(500000);
+            http_response_code(401);
+            $errorLogin = 'Contraseña incorrecta';
         }
-        usleep(500000);
-        http_response_code(401);
-        $errorLogin = 'Contraseña incorrecta';
     }
 }
 
