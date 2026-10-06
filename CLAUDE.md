@@ -18,7 +18,7 @@ App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un
 - `validar-asistencia.php` (POST JSON `{idTicket}`): marca la entrada. Requiere la sesión del admin (401 sin ella).
 - `estadisticas.php` (GET): totales para el escáner. Requiere la sesión del admin (401 sin ella).
 
-- `/registros.php`: pestañas «Tabla», «Escanear», «Agencias», «Áreas» y «Eventos» (`?vista=agencias|areas|eventos`); alta/edición/baja con la misma sesión y el mismo token CSRF (sin sesión: 401). Tabla de registros y descarga Excel (`?descargar=1`, SpreadsheetML `.xls`), protegida por sesión; la contraseña va solo en el entorno/`.env` (`ADMIN_PASSWORD`), no en el repo; si está vacía, el acceso queda deshabilitado.
+- `/registros.php`: pestañas «Tabla», «Escanear», «Agencias», «Áreas» y «Eventos» (`?vista=agencias|areas|eventos`); alta/edición/baja con la misma sesión y el mismo token CSRF (sin sesión: 401). La tabla de registros filtra por evento, estado, agencia y texto (GET `evento`, `estado`, `agencia`, `q`) y el Excel respeta ese filtro. Tabla de registros y descarga Excel (`?descargar=1`, SpreadsheetML `.xls`), protegida por sesión; la contraseña va solo en el entorno/`.env` (`ADMIN_PASSWORD`), no en el repo; si está vacía, el acceso queda deshabilitado.
 
 ## Secretos
 La cuenta SMTP de eventos está como valor por defecto en `backend/config.php` en esta rama, hasta que se rote. Un `.env` (ignorado por git) o las variables de entorno la sustituyen si están definidas. El escáner vive dentro de `registros.php` y solo funciona con sesión iniciada (los endpoints `validar-asistencia.php` y `estadisticas.php` validan la sesión vía `backend/sesion-admin.php`).

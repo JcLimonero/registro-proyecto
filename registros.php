@@ -129,20 +129,138 @@ function sqlSelectRegistros() {
     return 'SELECT r.id, ' . implode(', ', $cols) . ' FROM registros r LEFT JOIN eventos e ON e.id = r.evento_id';
 }
 
+/** Texto de entrada del cliente (solo cadenas), sin espacios en los bordes y con tope de caracteres. */
+function textoFiltro($valor, $max) {
+    if (!is_string($valor)) {
+        return '';
+    }
+    $valor = trim($valor);
+    return function_exists('mb_substr') ? mb_substr($valor, 0, $max, 'UTF-8') : substr($valor, 0, $max);
+}
+
+/**
+ * Filtros de la tabla de registros a partir de GET o POST (evento, estado, agencia, q).
+ * Devuelve siempre las cuatro claves con valores ya saneados; lo inválido se ignora ('').
+ * evento: '' | 'sin' | id numérico positivo.
+ */
+function filtrosRegistros(array $entrada) {
+    $evento = textoFiltro($entrada['evento'] ?? '', 20);
+    if ($evento !== 'sin') {
+        $idEvento = idValido($evento);
+        $evento = $idEvento === null ? '' : (string) $idEvento;
+    }
+    $estado = textoFiltro($entrada['estado'] ?? '', 20);
+    if (!in_array($estado, ['entro', 'pendiente'], true)) {
+        $estado = '';
+    }
+    return [
+        'evento'  => $evento,
+        'estado'  => $estado,
+        'agencia' => textoFiltro($entrada['agencia'] ?? '', 100),
+        'q'       => textoFiltro($entrada['q'] ?? '', 100),
+    ];
+}
+
+/**
+ * Filtros que viajan en un POST de la tabla. Van con prefijo «f_» (f_evento, f_estado, f_agencia, f_q)
+ * porque «agencia» ya es un campo del formulario de edición.
+ */
+function filtrosDePost() {
+    $entrada = [];
+    foreach (['evento', 'estado', 'agencia', 'q'] as $clave) {
+        $entrada[$clave] = $_POST['f_' . $clave] ?? '';
+    }
+    return filtrosRegistros($entrada);
+}
+
+/** Inputs hidden con los filtros activos (prefijo «f_») para los formularios POST de la tabla. */
+function camposOcultosFiltros(array $filtros) {
+    $html = '';
+    foreach (filtrosActivos($filtros) as $clave => $valor) {
+        $html .= '<input type="hidden" name="f_' . h($clave) . '" value="' . h($valor) . '">';
+    }
+    return $html;
+}
+
+/** ¿Hay algún filtro activo? */
+function hayFiltros(array $filtros) {
+    return implode('', $filtros) !== '';
+}
+
+/** Solo los filtros activos (para armar query strings). */
+function filtrosActivos(array $filtros) {
+    return array_filter($filtros, function ($v) { return $v !== ''; });
+}
+
+/** Escapa \ % _ para usar el texto dentro de un LIKE. */
+function escaparLike($texto) {
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $texto);
+}
+
+/** Condiciones WHERE (prepared) para los filtros. Devuelve [sql con «WHERE ...» o '', params]. */
+function whereRegistros(array $filtros) {
+    $cond = [];
+    $params = [];
+    if ($filtros['evento'] === 'sin') {
+        $cond[] = 'r.evento_id IS NULL';
+    } elseif ($filtros['evento'] !== '') {
+        $cond[] = 'r.evento_id = :evento';
+        $params[':evento'] = (int) $filtros['evento'];
+    }
+    if ($filtros['estado'] === 'entro') {
+        $cond[] = 'r.fecha_entrada IS NOT NULL';
+    } elseif ($filtros['estado'] === 'pendiente') {
+        $cond[] = 'r.fecha_entrada IS NULL';
+    }
+    if ($filtros['agencia'] !== '') {
+        $cond[] = 'r.agencia = :agencia';
+        $params[':agencia'] = $filtros['agencia'];
+    }
+    if ($filtros['q'] !== '') {
+        $like = '%' . escaparLike($filtros['q']) . '%';
+        $cond[] = '(r.nombre LIKE :q1 OR r.correo LIKE :q2 OR r.num_empleado LIKE :q3 OR r.id_ticket LIKE :q4)';
+        $params[':q1'] = $params[':q2'] = $params[':q3'] = $params[':q4'] = $like;
+    }
+    return [$cond ? ' WHERE ' . implode(' AND ', $cond) : '', $params];
+}
+
 /** Devuelve [filas, error]. */
-function obtenerRegistros() {
+function obtenerRegistros(array $filtros = []) {
     $conn = getConnection();
     if (!$conn) {
         return [[], 'No se pudo conectar a la base de datos.'];
     }
     try {
         createTable();
-        $filas = $conn->query(sqlSelectRegistros() . ' ORDER BY r.fecha_registro DESC')->fetchAll(PDO::FETCH_ASSOC);
+        $filtros += ['evento' => '', 'estado' => '', 'agencia' => '', 'q' => ''];
+        list($where, $params) = whereRegistros($filtros);
+        $stmt = $conn->prepare(sqlSelectRegistros() . $where . ' ORDER BY r.fecha_registro DESC');
+        $stmt->execute($params);
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return [$filas, null];
     } catch (PDOException $e) {
         error_log('registros.php: ' . $e->getMessage());
         return [[], 'No se pudieron leer los registros.'];
     }
+}
+
+/** Opciones de los selects de filtro: [eventos [id, nombre], agencias [nombre]]. Lanza PDOException si falla. */
+function opcionesFiltros(PDO $conn) {
+    $eventos = $conn->query('SELECT id, nombre FROM eventos ORDER BY fecha_inicio DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
+    // Catálogo + texto ya guardado en registros (UNION DISTINCT hecho en PHP para no depender de las collations).
+    $agencias = [];
+    $consultas = ['SELECT nombre FROM agencias', 'SELECT DISTINCT agencia AS nombre FROM registros'];
+    foreach ($consultas as $sql) {
+        foreach ($conn->query($sql)->fetchAll(PDO::FETCH_COLUMN) as $nombre) {
+            $nombre = trim((string) $nombre);
+            if ($nombre !== '') {
+                $agencias[$nombre] = $nombre;
+            }
+        }
+    }
+    $agencias = array_values($agencias);
+    sort($agencias, SORT_NATURAL | SORT_FLAG_CASE);
+    return [$eventos, $agencias];
 }
 
 /** Un registro por id numérico (o null si no existe). Lanza PDOException si falla la base. */
@@ -568,6 +686,10 @@ function volverConMensaje($tipo, $texto, $vista = null) {
     if ($vista && $p > 1) {
         $qs['p'] = (string) $p;
     }
+    if (!$vista) {
+        // Registro (tabla): conserva los filtros que vengan en el POST.
+        $qs += filtrosActivos(filtrosDePost());
+    }
     header('Location: registros.php' . ($qs ? '?' . http_build_query($qs) : ''));
     exit;
 }
@@ -683,7 +805,7 @@ if (isset($_GET['descargar'])) {
     if (!$autenticado) {
         responderTexto(401, 'No autorizado');
     }
-    list($filas, $error) = obtenerRegistros();
+    list($filas, $error) = obtenerRegistros(filtrosRegistros($_GET));
     if ($error !== null) {
         responderTexto(503, $error);
     }
@@ -704,6 +826,9 @@ $vista = (in_array($vistaPedida, ['escanear', 'agencias', 'areas', 'eventos'], t
 const TITULOS_VISTA = ['tabla' => 'Registros', 'escanear' => 'Escanear', 'agencias' => 'Agencias', 'areas' => 'Áreas', 'eventos' => 'Eventos'];
 
 $filas = [];
+$filtros = filtrosRegistros([]);
+$opcionesEventos = [];
+$opcionesAgencias = [];
 $errorDatos = null;
 $pagCatalogo = null;
 $ahoraAdmin = date('Y-m-d H:i:s');
@@ -738,17 +863,32 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
     }
 }
 if ($autenticado && $vista === 'tabla') {
-    list($filas, $errorDatos) = obtenerRegistros();
+    // Tras un POST fallido (422) los filtros vienen como f_*; en GET, con su nombre.
+    $filtros = $_SERVER['REQUEST_METHOD'] === 'POST' ? filtrosDePost() : filtrosRegistros($_GET);
+    list($filas, $errorDatos) = obtenerRegistros($filtros);
+
+    // Opciones de los selects (si fallan, la tabla se muestra igual con los selects casi vacíos).
+    $opcionesEventos = [];
+    $opcionesAgencias = [];
+    $connOpc = $errorDatos ? null : getConnection();
+    if ($connOpc) {
+        try {
+            list($opcionesEventos, $opcionesAgencias) = opcionesFiltros($connOpc);
+        } catch (PDOException $e) {
+            error_log('registros.php: ' . $e->getMessage());
+        }
+    }
 
     if ($edicion === null && isset($_GET['editar'])) {
         $idEditar = idValido($_GET['editar']);
         $encontrada = null;
-        if ($idEditar !== null) {
-            foreach ($filas as $f) {
-                if ((int) $f['id'] === $idEditar) {
-                    $encontrada = $f;
-                    break;
-                }
+        if ($idEditar !== null && $connOpc) {
+            // Por id, no del barrido filtrado: se puede editar aunque el filtro excluya la fila.
+            try {
+                $encontrada = obtenerRegistroPorId($connOpc, $idEditar);
+            } catch (PDOException $e) {
+                error_log('registros.php: ' . $e->getMessage());
+                $errorDatos = 'No se pudo leer el registro.';
             }
         }
         if ($encontrada) {
@@ -962,8 +1102,42 @@ if ($autenticado && $vista === 'tabla') {
         .edicion .btn-sec { width: 100%; }
         .edicion form { margin: 0; }
 
+        /* Filtros de la tabla: una columna en celular, en fila desde 768px */
+        .filtros {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .filtro { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .filtro select, .filtro input {
+            width: 100%;
+            height: 52px;
+            border: 0;
+            background: #eef0f3;
+            padding: 0 14px;
+            font: inherit;
+            font-size: 16px;
+            color: #212529;
+            border-radius: 0;
+        }
+        .filtro select { text-overflow: ellipsis; }
+        .filtro select:focus, .filtro input:focus { outline: 2px solid #adb5bd; }
+        .filtro-botones { display: flex; flex-direction: column; gap: 8px; }
+        .filtro-botones .btn-primario, .filtro-botones .btn-sec { width: 100%; }
+
         @media (min-width: 768px) {
             body { font-size: 14px; }
+            .filtros { flex-direction: row; flex-wrap: wrap; align-items: flex-end; padding: 16px 20px; margin-bottom: 20px; }
+            .filtro { flex: 1 1 160px; }
+            .filtro-buscar { flex: 2 1 240px; }
+            .filtro select, .filtro input { height: 40px; padding: 0 12px; font-size: 14px; }
+            .filtro-botones { flex-direction: row; flex: none; }
+            .filtro-botones .btn-primario, .filtro-botones .btn-sec { width: auto; }
             .etiqueta, button, .btn { font-size: 12px; }
             .login { max-width: 380px; padding: 32px 40px; }
             .login input[type=password] { height: 40px; padding: 0 12px; }
@@ -1154,7 +1328,7 @@ if ($autenticado && $vista === 'tabla') {
             </div>
             <div class="acciones">
             <?php if ($vista === 'tabla'): ?>
-                <a class="btn btn-sec" href="registros.php?descargar=1">Descargar Excel</a>
+                <a class="btn btn-sec" href="registros.php?<?= h(http_build_query(['descargar' => '1'] + filtrosActivos($filtros))) ?>">Descargar Excel</a>
             <?php endif; ?>
                 <form method="post" action="registros.php">
                     <input type="hidden" name="accion" value="salir">
@@ -1249,6 +1423,15 @@ if ($autenticado && $vista === 'tabla') {
             <?php endif; ?>
         </div>
         <?php else: ?>
+        <?php
+            $qsFiltros = http_build_query(filtrosActivos($filtros));
+            $filtrosActivosHay = hayFiltros($filtros);
+            $eventoEnLista = $filtros['evento'] === '' || $filtros['evento'] === 'sin';
+            foreach ($opcionesEventos as $oe) {
+                if ((string) $oe['id'] === $filtros['evento']) { $eventoEnLista = true; }
+            }
+            $agenciaEnLista = $filtros['agencia'] === '' || in_array($filtros['agencia'], array_map('strval', $opcionesAgencias), true);
+        ?>
 
         <?php if ($edicion): ?>
         <div class="tarjeta edicion">
@@ -1265,6 +1448,7 @@ if ($autenticado && $vista === 'tabla') {
                 <input type="hidden" name="accion" value="guardar">
                 <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                 <input type="hidden" name="id" value="<?= (int) $edicion['id'] ?>">
+                <?= camposOcultosFiltros($filtros) ?>
                 <div class="campos">
                 <?php foreach (CAMPOS_EDITABLES as $campo => $def): ?>
                     <div>
@@ -1276,17 +1460,63 @@ if ($autenticado && $vista === 'tabla') {
                 </div>
                 <div class="botones">
                     <button type="submit" class="btn-primario">Guardar</button>
-                    <a class="btn btn-sec" href="registros.php">Cancelar</a>
+                    <a class="btn btn-sec" href="registros.php<?= $qsFiltros !== '' ? '?' . h($qsFiltros) : '' ?>">Cancelar</a>
                 </div>
             </form>
         </div>
         <?php endif; ?>
 
+        <form class="filtros" method="get" action="registros.php" aria-label="Filtros de registros">
+            <div class="filtro">
+                <label class="etiqueta sec" for="flt-evento">Evento</label>
+                <select id="flt-evento" name="evento">
+                    <option value="">Todos</option>
+                    <option value="sin"<?= $filtros['evento'] === 'sin' ? ' selected' : '' ?>>Sin evento</option>
+                <?php foreach ($opcionesEventos as $oe): ?>
+                    <option value="<?= (int) $oe['id'] ?>"<?= (string) $oe['id'] === $filtros['evento'] ? ' selected' : '' ?>><?= h($oe['nombre']) ?></option>
+                <?php endforeach; ?>
+                <?php if (!$eventoEnLista): ?>
+                    <option value="<?= h($filtros['evento']) ?>" selected>Evento <?= h($filtros['evento']) ?></option>
+                <?php endif; ?>
+                </select>
+            </div>
+            <div class="filtro">
+                <label class="etiqueta sec" for="flt-estado">Estado</label>
+                <select id="flt-estado" name="estado">
+                    <option value="">Todos</option>
+                    <option value="entro"<?= $filtros['estado'] === 'entro' ? ' selected' : '' ?>>Entró</option>
+                    <option value="pendiente"<?= $filtros['estado'] === 'pendiente' ? ' selected' : '' ?>>Pendiente</option>
+                </select>
+            </div>
+            <div class="filtro">
+                <label class="etiqueta sec" for="flt-agencia">Agencia</label>
+                <select id="flt-agencia" name="agencia">
+                    <option value="">Todas</option>
+                <?php foreach ($opcionesAgencias as $oa): $oa = (string) $oa; ?>
+                    <option value="<?= h($oa) ?>"<?= $oa === $filtros['agencia'] ? ' selected' : '' ?>><?= h($oa) ?></option>
+                <?php endforeach; ?>
+                <?php if (!$agenciaEnLista): ?>
+                    <option value="<?= h($filtros['agencia']) ?>" selected><?= h($filtros['agencia']) ?></option>
+                <?php endif; ?>
+                </select>
+            </div>
+            <div class="filtro filtro-buscar">
+                <label class="etiqueta sec" for="flt-q">Buscar</label>
+                <input type="search" id="flt-q" name="q" value="<?= h($filtros['q']) ?>" maxlength="100" placeholder="Nombre, correo, empleado o ticket" autocomplete="off">
+            </div>
+            <div class="filtro-botones">
+                <button type="submit" class="btn-primario">Filtrar</button>
+            <?php if ($filtrosActivosHay): ?>
+                <a class="btn btn-sec" href="registros.php">Limpiar</a>
+            <?php endif; ?>
+            </div>
+        </form>
+
         <div class="tarjeta tabla-wrap">
         <?php if ($errorDatos): ?>
             <div class="aviso" role="alert"><?= h($errorDatos) ?></div>
         <?php elseif (!$filas): ?>
-            <div class="vacio">Aún no hay registros.</div>
+            <div class="vacio"><?= $filtrosActivosHay ? 'Ningún registro coincide con los filtros.' : 'Aún no hay registros.' ?></div>
         <?php else: ?>
             <table>
                 <thead>
@@ -1307,12 +1537,13 @@ if ($autenticado && $vista === 'tabla') {
                     <?php endforeach; ?>
                         <td class="acciones-celda">
                             <div class="fila-acciones">
-                                <a class="btn-fila" href="registros.php?editar=<?= (int) $fila['id'] ?>">Editar</a>
+                                <a class="btn-fila" href="registros.php?<?= h(http_build_query(['editar' => (int) $fila['id']] + filtrosActivos($filtros))) ?>">Editar</a>
                                 <form method="post" action="registros.php"
                                       onsubmit="return confirm(<?= h(json_encode('¿Eliminar el registro de ' . valorCelda($fila, 'nombre') . '? Esta acción no se puede deshacer.', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>);">
                                     <input type="hidden" name="accion" value="eliminar">
                                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                                     <input type="hidden" name="id" value="<?= (int) $fila['id'] ?>">
+                                    <?= camposOcultosFiltros($filtros) ?>
                                     <button type="submit" class="btn-fila eliminar">Eliminar</button>
                                 </form>
                             </div>
