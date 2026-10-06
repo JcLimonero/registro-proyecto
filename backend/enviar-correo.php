@@ -58,6 +58,14 @@ function enviarCorreo($data) {
             'image/png'
         );
 
+        $logoCid = 'logo_vanguardia';
+        $logoRuta = __DIR__ . '/../assets/grupo-vanguardia-logo.png';
+        $logoHtml = '';
+        if (is_readable($logoRuta)) {
+            $mail->addEmbeddedImage($logoRuta, $logoCid, 'grupo-vanguardia-logo.png', 'base64', 'image/png');
+            $logoHtml = '<img src="cid:' . $logoCid . '" alt="Grupo Vanguardia" width="220" style="display:block; margin:0 auto; max-width:220px; height:auto; border:0;">';
+        }
+
         $mail->isHTML(true);
         $mail->Subject = "Registro Confirmado - ID Ticket: " . $data['idTicket'];
 
@@ -81,7 +89,7 @@ function enviarCorreo($data) {
             <style>
                 body { font-family: Arial, sans-serif; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #000102 0%, #edf6ff 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+                .header { background: #ffffff; color: #212529; padding: 28px 20px 8px; text-align: center; }
                 .content { background: #f8f9fa; padding: 20px; border-radius: 0 0 10px 10px; }
                 .ticket-id { font-size: 24px; color: #667eea; font-weight: bold; }
                 .info-row { padding: 10px 0; border-bottom: 1px solid #ddd; }
@@ -91,8 +99,9 @@ function enviarCorreo($data) {
         </head>
         <body>
             <div class='container'>
-                <div class='header'>
-                    <h2>🎫 ¡Registro Confirmado!</h2>
+                <div class='header' style='background:#ffffff; color:#212529; padding:28px 20px 8px; text-align:center;'>
+                    {$logoHtml}
+                    <h2 style='margin:16px 0 0; font-size:22px; font-weight:700; color:#212529;'>Registro confirmado</h2>
                 </div>
                 <div class='content'>
                     <p>Hola <strong>{$nombre}</strong>,</p>
