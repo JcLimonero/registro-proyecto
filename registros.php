@@ -101,6 +101,16 @@ function h($texto) {
     return htmlspecialchars((string) $texto, ENT_QUOTES, 'UTF-8');
 }
 
+/** Icono de trazo (agregar, guardar o eliminar) para los botones de acción. */
+function icono($nombre) {
+    $trazos = [
+        'agregar'  => '<path d="M5 12h14"/><path d="M12 5v14"/>',
+        'guardar'  => '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
+        'eliminar' => '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+    ];
+    return '<svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ($trazos[$nombre] ?? '') . '</svg>';
+}
+
 /** Fecha de entrada como «d/m/Y H:i», o null si la persona aún no ha entrado. */
 function fechaEntradaTexto(array $fila) {
     $valor = $fila['fecha_entrada'] ?? null;
@@ -526,7 +536,7 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
                 <label class="etiqueta sec" for="nuevo-<?= h($tipo) ?>">Nombre</label>
                 <input type="text" id="nuevo-<?= h($tipo) ?>" name="nombre" maxlength="<?= (int) $max ?>" required>
             </div>
-            <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>">Agregar</button>
+            <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_<?= h($tipo) ?>" aria-label="Agregar" title="Agregar"><?= icono('agregar') ?></button>
         </form>
     </section>
     <?php if (!$pag['total']): ?>
@@ -554,9 +564,10 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
                     </td>
                     <td class="cat-usos"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones">
-                        <button type="submit" class="btn-primario" name="accion" value="guardar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>">Guardar</button>
-                        <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>" formnovalidate
-                                onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);">Eliminar</button>
+                        <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
+                        <button type="submit" class="btn-sec btn-peligro btn-icono" name="accion" value="eliminar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>" formnovalidate
+                                aria-label="Eliminar" title="Eliminar"
+                                onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);"><?= icono('eliminar') ?></button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -588,7 +599,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 <label class="etiqueta sec" for="nuevo-fin">Fin</label>
                 <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
             </div>
-            <button type="submit" class="btn-primario" name="accion" value="guardar_evento">Agregar</button>
+            <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" aria-label="Agregar" title="Agregar"><?= icono('agregar') ?></button>
         </form>
     </section>
     <?php if (!$pag['total']): ?>
@@ -630,9 +641,10 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     <td><span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span></td>
                     <td class="cat-usos"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones">
-                        <button type="submit" class="btn-primario" name="accion" value="guardar_evento" form="evento-<?= $i ?>">Guardar</button>
-                        <button type="submit" class="btn-sec btn-peligro" name="accion" value="eliminar_evento" form="evento-<?= $i ?>" formnovalidate
-                                onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);">Eliminar</button>
+                        <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" form="evento-<?= $i ?>" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
+                        <button type="submit" class="btn-sec btn-peligro btn-icono" name="accion" value="eliminar_evento" form="evento-<?= $i ?>" formnovalidate
+                                aria-label="Eliminar" title="Eliminar"
+                                onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);"><?= icono('eliminar') ?></button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -975,6 +987,13 @@ if ($autenticado && $vista === 'tabla') {
         .error { color: #b02a37; margin: 0 0 16px; font-size: 14px; }
         button, .btn { font-family: inherit; cursor: pointer; border-radius: 0; height: 52px; padding: 0 20px; }
         .btn-primario { width: 100%; background: #1a1a1a; color: #fff; border: 0; }
+        button.btn-primario.btn-icono,
+        button.btn-sec.btn-icono,
+        button.btn-fila.btn-icono {
+            width: 36px; min-width: 36px; height: 36px; padding: 0; flex: none;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn-icono .icono { width: 18px; height: 18px; display: block; }
         .btn-primario:hover { background: #2a2a2a; }
         .btn-sec {
             display: inline-flex;
@@ -1052,7 +1071,7 @@ if ($autenticado && $vista === 'tabla') {
         .fecha-entrada { display: block; margin-top: 4px; font-size: 13px; }
 
         .fila-acciones { display: flex; gap: 8px; width: 100%; }
-        .fila-acciones form { margin: 0; flex: 1; }
+        .fila-acciones form { margin: 0; flex: none; }
         .fila-acciones .btn-fila { flex: 1; }
         .btn-fila {
             width: 100%;
@@ -1235,8 +1254,7 @@ if ($autenticado && $vista === 'tabla') {
         }
         .catalogo .cat-usos { text-align: center; white-space: nowrap; }
         .catalogo .cat-acciones { white-space: nowrap; }
-        .catalogo .cat-acciones .btn-primario,
-        .catalogo .cat-acciones .btn-sec { width: auto; height: 36px; padding: 0 12px; margin-right: 6px; }
+        .catalogo .cat-acciones .btn-icono { margin-right: 6px; }
         .paginacion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px; }
         .pag-info { font-size: 13px; color: #212529; }
         .pag-off { opacity: 0.4; pointer-events: none; }
@@ -1248,12 +1266,12 @@ if ($autenticado && $vista === 'tabla') {
             .catalogo table.cat-eventos .col-fecha { width: 24%; }
             .catalogo table.cat-eventos .col-estado { width: 10%; }
             .catalogo table.cat-eventos .col-usos { width: 14%; }
-            .catalogo table.cat-eventos .col-acciones { width: 14%; }
+            .catalogo table.cat-eventos .col-acciones { width: 12%; }
             .catalogo table.cat-eventos th,
             .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
             .catalogo table.cat-eventos th { white-space: normal; letter-spacing: 0.02em; line-height: 1.2; }
             .catalogo table.cat-eventos input[type=datetime-local] { min-width: 0; font-size: 13px; padding: 0 6px; }
-            .catalogo table.cat-eventos .cat-acciones { white-space: normal; }
+            .catalogo table.cat-eventos .cat-acciones { white-space: nowrap; }
         }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
         .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -1459,7 +1477,7 @@ if ($autenticado && $vista === 'tabla') {
                 <?php endforeach; ?>
                 </div>
                 <div class="botones">
-                    <button type="submit" class="btn-primario">Guardar</button>
+                    <button type="submit" class="btn-primario btn-icono" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
                     <a class="btn btn-sec" href="registros.php<?= $qsFiltros !== '' ? '?' . h($qsFiltros) : '' ?>">Cancelar</a>
                 </div>
             </form>
@@ -1544,7 +1562,7 @@ if ($autenticado && $vista === 'tabla') {
                                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                                     <input type="hidden" name="id" value="<?= (int) $fila['id'] ?>">
                                     <?= camposOcultosFiltros($filtros) ?>
-                                    <button type="submit" class="btn-fila eliminar">Eliminar</button>
+                                    <button type="submit" class="btn-fila eliminar btn-icono" aria-label="Eliminar" title="Eliminar"><?= icono('eliminar') ?></button>
                                 </form>
                             </div>
                         </td>
