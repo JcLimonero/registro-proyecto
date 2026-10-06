@@ -86,6 +86,8 @@ try {
         'message' => 'Registro exitoso',
         'id' => $conn->lastInsertId(),
         'evento' => $evento['nombre'],
+        'fecha_inicio' => $evento['fecha_inicio'],
+        'fecha_fin' => $evento['fecha_fin'],
     ]);
 
 } catch (PDOException $e) {

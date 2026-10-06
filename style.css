@@ -202,9 +202,36 @@ h1 {
 
 /* ---------- Confirmación y QR ---------- */
 .confirmation-card {
-    background: #f4f5f7;
-    padding: 16px;
+    background: #fff;
+    padding: 20px 16px;
     margin: 16px 0;
+    border: 1px solid #adb5bd;
+}
+
+.pase-marca {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+.pase-evento {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+}
+
+.pase-fechas {
+    text-align: center;
+    color: #6c757d;
+    font-size: 13px;
+    margin-bottom: 16px;
 }
 
 .ticket-info h3 {

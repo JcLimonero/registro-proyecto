@@ -69,10 +69,12 @@
 
         <div class="confirmation-container" id="confirmationContainer" style="display: none;">
             <h1>¡Registro Exitoso!</h1>
-            <div class="confirmation-card">
+            <div class="confirmation-card" id="pase">
+                <p class="pase-marca">Grupo Vanguardia</p>
+                <h2 class="pase-evento" id="confirmEvento"></h2>
+                <p class="pase-fechas"><span id="confirmInicio"></span> — <span id="confirmFin"></span></p>
                 <div class="ticket-info">
                     <h3>ID Ticket: <span id="ticketId"></span></h3>
-                    <p><strong>Evento:</strong> <span id="confirmEvento"></span></p>
                     <p><strong>Fecha de Registro:</strong> <span id="fechaRegistro"></span></p>
                     <p><strong>Nombre:</strong> <span id="confirmNombre"></span></p>
                     <p><strong>Número de Empleado:</strong> <span id="confirmNumEmpleado"></span></p>
@@ -84,9 +86,9 @@
 
                 <div class="qr-container">
                     <div id="qrCode"></div>
-                    <button id="descargarQR" class="btn-download">Descargar QR</button>
                 </div>
             </div>
+            <button id="descargarQR" class="btn-download">Descargar QR</button>
             <button id="nuevoRegistro" class="btn-new">Nuevo Registro</button>
         </div>
     </main>

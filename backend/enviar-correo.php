@@ -64,6 +64,9 @@ function enviarCorreo($data) {
         $nombre   = esc($data['nombre']);
         $ticket   = esc($data['idTicket']);
         $fecha    = esc($data['fechaRegistro']);
+        $evento   = esc($data['eventoNombre'] ?? '');
+        $inicio   = esc($data['eventoInicio'] ?? '');
+        $fin      = esc($data['eventoFin'] ?? '');
         $empleado = esc($data['numEmpleado']);
         $agencia  = esc($data['agencia']);
         $puesto   = esc($data['puesto']);
@@ -97,6 +100,15 @@ function enviarCorreo($data) {
                         ID Ticket: {$ticket}
                     </div>
 
+                    <div class='info-row'>
+                        <strong>Evento:</strong> {$evento}
+                    </div>
+                    <div class='info-row'>
+                        <strong>Inicio:</strong> {$inicio}
+                    </div>
+                    <div class='info-row'>
+                        <strong>Fin:</strong> {$fin}
+                    </div>
                     <div class='info-row'>
                         <strong>Fecha de Registro:</strong> {$fecha}
                     </div>
@@ -134,7 +146,10 @@ function enviarCorreo($data) {
         ";
 
         $mail->Body = $message;
-        $mail->AltBody = "Registro Confirmado\nID Ticket: {$data['idTicket']}\nNombre: {$data['nombre']}\nFecha: {$data['fechaRegistro']}";
+        $eventoTxt = (string) ($data['eventoNombre'] ?? '');
+        $inicioTxt = (string) ($data['eventoInicio'] ?? '');
+        $finTxt = (string) ($data['eventoFin'] ?? '');
+        $mail->AltBody = "Registro Confirmado\nEvento: {$eventoTxt}\nInicio: {$inicioTxt}\nFin: {$finTxt}\nID Ticket: {$data['idTicket']}\nNombre: {$data['nombre']}\nFecha: {$data['fechaRegistro']}";
 
         $mail->send();
         return ['success' => true, 'message' => 'Correo enviado exitosamente'];

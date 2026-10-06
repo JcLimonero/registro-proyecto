@@ -152,6 +152,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
 
             if (result.success) {
+                datos.eventoNombre = result.evento || datos.eventoNombre;
+                datos.eventoInicio = fechaLegible(result.fecha_inicio);
+                datos.eventoFin = fechaLegible(result.fecha_fin);
                 mostrarConfirmacion(datos);
                 
                 generarQR(idTicket);
@@ -184,6 +187,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function mostrarConfirmacion(datos) {
         document.getElementById('ticketId').textContent = datos.idTicket;
         document.getElementById('confirmEvento').textContent = datos.eventoNombre;
+        document.getElementById('confirmInicio').textContent = datos.eventoInicio;
+        document.getElementById('confirmFin').textContent = datos.eventoFin;
         document.getElementById('fechaRegistro').textContent = datos.fechaRegistro;
         document.getElementById('confirmNombre').textContent = datos.nombre;
         document.getElementById('confirmNumEmpleado').textContent = datos.numEmpleado;
@@ -230,12 +235,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     descargarQRBtn.addEventListener('click', function() {
-        const qrContainer = document.getElementById('qrCode');
+        const pase = document.getElementById('pase');
         const ticketId = document.getElementById('ticketId').textContent;
-        
-        html2canvas(qrContainer).then(canvas => {
+        const evento = document.getElementById('confirmEvento').textContent;
+        const nombre = 'QR-' + [evento, ticketId].filter(Boolean).join('-').replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/g, '_') + '.png';
+
+        html2canvas(pase, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `QR-${ticketId}.png`;
+            link.download = nombre;
             link.href = canvas.toDataURL('image/png');
             link.click();
         });
