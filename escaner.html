@@ -3,81 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmar Entrada - Lector QR</title>
+    <meta name="robots" content="noindex">
+    <meta http-equiv="refresh" content="0; url=registros.php">
+    <title>Redirigiendo…</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
-    <link rel="stylesheet" href="escaner.css">
+    <script>window.location.replace('registros.php');</script>
 </head>
 <body>
-    <div class="container">
-        <div class="stats-panel">
-            <div class="stat-card total">
-                <div class="stat-icon">📊</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statTotal">0</div>
-                    <div class="stat-label">Registrados</div>
-                </div>
-            </div>
-            <div class="stat-card confirmed">
-                <div class="stat-icon">✅</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statConfirmados">0</div>
-                    <div class="stat-label">Confirmados</div>
-                </div>
-            </div>
-            <div class="stat-card pending">
-                <div class="stat-icon">⏳</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="statPendientes">0</div>
-                    <div class="stat-label">Por Confirmar</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="scanSection" class="scan-section">
-            <div class="header">
-                <div class="marca" role="img" aria-label="Grupo Vanguardia"></div>
-                <h1>Confirmar Entrada</h1>
-                <p>Apunta la cámara al código QR o usa el lector</p>
-            </div>
-
-            <div class="camera-section">
-                <div id="cameraBox" class="camera-box">
-                    <div id="qrReader"></div>
-                    <div id="cameraPlaceholder" class="camera-placeholder">📷 Cámara apagada</div>
-                </div>
-                <div id="cameraStatus" class="camera-status"></div>
-                <button type="button" id="btnCamera" class="btn-camera">Encender cámara</button>
-            </div>
-
-            <div class="input-container">
-                <input 
-                    type="text" 
-                    id="ticketInput" 
-                    placeholder="Esperando escaneo..."
-                    autofocus
-                    autocomplete="off"
-                >
-                <div class="scan-icon">🎫</div>
-            </div>
-
-            <div id="scanResult" class="scan-result info">
-                ✅ Listo para escanear. Escanea el QR con la cámara o el lector.
-            </div>
-
-            <div class="recent-scans">
-                <h3>📋 Últimos escaneos</h3>
-                <div id="recentList" class="recent-list">
-                    <p class="no-recent">Aún no hay escaneos en esta sesión</p>
-                </div>
-            </div>
-        </div>
-
-        <div id="confirmSection" class="confirm-section" style="display: none;">
-            <div id="confirmContent"></div>
-        </div>
-    </div>
-
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <script src="escaner.js"></script>
+    <p><a href="registros.php">Continuar</a></p>
 </body>
 </html>

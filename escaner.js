@@ -159,6 +159,12 @@ function lecturaCamara(texto, validar) {
     validar(codigo);
 }
 
+// La sesión del admin venció: volver a registros.php (pide la contraseña)
+function sesionVencida() {
+    apagarCamara();
+    window.location.href = 'registros.php';
+}
+
 // En pantallas táctiles no se fuerza el foco (abriría el teclado en cada momento)
 const esTactil = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
@@ -215,7 +221,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function cargarEstadisticas() {
         try {
-            const response = await fetch('backend/estadisticas.php');
+            const response = await fetch('backend/estadisticas.php', { credentials: 'same-origin' });
+            if (response.status === 401) {
+                sesionVencida();
+                return;
+            }
             const result = await response.json();
 
             if (result.success) {
@@ -249,11 +259,17 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch('backend/validar-asistencia.php', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ idTicket: idTicket })
             });
+
+            if (response.status === 401) {
+                sesionVencida();
+                return;
+            }
 
             const result = await response.json();
 

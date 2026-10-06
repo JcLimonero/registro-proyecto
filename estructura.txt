@@ -5,7 +5,7 @@ registro-proyecto/
 ├── index.html              # Formulario de registro
 ├── style.css
 ├── script.js
-├── escaner.html            # Pantalla del escáner QR (entrada al evento)
+├── escaner.html            # Solo redirige a registros.php (el escáner vive dentro del admin)
 ├── escaner.js
 ├── escaner.css
 ├── registros.php           # Tabla de registros protegida con contraseña + descarga Excel (.xls)

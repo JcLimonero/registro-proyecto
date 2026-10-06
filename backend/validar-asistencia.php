@@ -1,5 +1,8 @@
 <?php
 require_once 'config.php';
+require_once __DIR__ . '/sesion-admin.php';
+
+requerirSesionAdmin();
 
 header('Content-Type: application/json');
 

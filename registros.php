@@ -332,9 +332,12 @@ if (isset($_GET['editar']) && !$autenticado) {
     http_response_code(401);
 }
 
+// Vista: «tabla» (por defecto) o «escanear». Editar siempre es de la tabla.
+$vista = (($_GET['vista'] ?? '') === 'escanear' && !isset($_GET['editar'])) ? 'escanear' : 'tabla';
+
 $filas = [];
 $errorDatos = null;
-if ($autenticado) {
+if ($autenticado && $vista === 'tabla') {
     list($filas, $errorDatos) = obtenerRegistros();
 
     if ($edicion === null && isset($_GET['editar'])) {
@@ -364,6 +367,9 @@ if ($autenticado) {
         $mensaje = $_SESSION['flash'];
         unset($_SESSION['flash']);
     }
+} elseif ($autenticado && !empty($_SESSION['flash'])) {
+    $mensaje = $_SESSION['flash'];
+    unset($_SESSION['flash']);
 }
 ?>
 <!DOCTYPE html>
@@ -372,7 +378,7 @@ if ($autenticado) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>Registros</title>
+    <title><?= $vista === 'escanear' ? 'Escanear' : 'Registros' ?></title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -607,7 +613,36 @@ if ($autenticado) {
             .edicion .botones { flex-direction: row; flex-wrap: wrap; }
             .edicion .btn-primario, .edicion .btn-sec { width: auto; }
         }
+
+        /* Pestañas Tabla / Escanear: grandes y fáciles de tocar en el celular */
+        .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .tab {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 56px;
+            background: #fff;
+            color: #212529;
+            border: 1px solid #adb5bd;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            touch-action: manipulation;
+        }
+        .tab[aria-current="page"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+        .tab:not([aria-current="page"]):hover { background: #f4f5f7; }
+        #vistaEscaner { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); padding: 16px; }
+        @media (min-width: 768px) {
+            .tab { height: 48px; font-size: 13px; }
+            .tabs { max-width: 420px; }
+            #vistaEscaner { padding: 28px; }
+        }
     </style>
+    <?php if ($autenticado && $vista === 'escanear'): ?>
+    <link rel="stylesheet" href="escaner.css">
+    <?php endif; ?>
 </head>
 <body>
 <?php if (!$autenticado): ?>
@@ -630,10 +665,16 @@ if ($autenticado) {
         <div class="barra">
             <div class="marca-barra">
                 <div class="marca" role="img" aria-label="Grupo Vanguardia"></div>
+            <?php if ($vista === 'tabla'): ?>
                 <h1>Registros <span class="sec" style="font-weight:400;font-size:14px;">(<?= count($filas) ?>)</span></h1>
+            <?php else: ?>
+                <h1>Escanear</h1>
+            <?php endif; ?>
             </div>
             <div class="acciones">
+            <?php if ($vista === 'tabla'): ?>
                 <a class="btn btn-sec" href="registros.php?descargar=1">Descargar Excel</a>
+            <?php endif; ?>
                 <form method="post" action="registros.php">
                     <input type="hidden" name="accion" value="salir">
                     <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
@@ -642,9 +683,78 @@ if ($autenticado) {
             </div>
         </div>
 
+        <nav class="tabs" aria-label="Vista">
+            <a class="tab" href="registros.php"<?= $vista === 'tabla' ? ' aria-current="page"' : '' ?>>Tabla</a>
+            <a class="tab" href="registros.php?vista=escanear"<?= $vista === 'escanear' ? ' aria-current="page"' : '' ?>>Escanear</a>
+        </nav>
+
         <?php if ($mensaje): ?>
             <div class="mensaje <?= $mensaje['tipo'] === 'ok' ? 'ok' : 'error' ?>" role="status"><?= h($mensaje['texto']) ?></div>
         <?php endif; ?>
+
+        <?php if ($vista === 'escanear'): ?>
+        <div id="vistaEscaner">
+            <div class="stats-panel">
+                <div class="stat-card total">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Registrados</div>
+                    </div>
+                </div>
+                <div class="stat-card confirmed">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statConfirmados">0</div>
+                        <div class="stat-label">Confirmados</div>
+                    </div>
+                </div>
+                <div class="stat-card pending">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statPendientes">0</div>
+                        <div class="stat-label">Por Confirmar</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scanSection" class="scan-section">
+                <div class="header">
+                    <h1>Confirmar Entrada</h1>
+                    <p>Apunta la cámara al código QR o usa el lector</p>
+                </div>
+
+                <div class="camera-section">
+                    <div id="cameraBox" class="camera-box">
+                        <div id="qrReader"></div>
+                        <div id="cameraPlaceholder" class="camera-placeholder">📷 Cámara apagada</div>
+                    </div>
+                    <div id="cameraStatus" class="camera-status"></div>
+                    <button type="button" id="btnCamera" class="btn-camera">Encender cámara</button>
+                </div>
+
+                <div class="input-container">
+                    <input type="text" id="ticketInput" placeholder="Esperando escaneo..." autocomplete="off">
+                    <div class="scan-icon">🎫</div>
+                </div>
+
+                <div id="scanResult" class="scan-result info">
+                    ✅ Listo para escanear. Escanea el QR con la cámara o el lector.
+                </div>
+
+                <div class="recent-scans">
+                    <h3>📋 Últimos escaneos</h3>
+                    <div id="recentList" class="recent-list">
+                        <p class="no-recent">Aún no hay escaneos en esta sesión</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="confirmSection" class="confirm-section" style="display: none;">
+                <div id="confirmContent"></div>
+            </div>
+        </div>
+        <?php else: ?>
 
         <?php if ($edicion): ?>
         <div class="tarjeta edicion">
@@ -719,7 +829,12 @@ if ($autenticado) {
             </table>
         <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
+    <?php if ($vista === 'escanear'): ?>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="escaner.js"></script>
+    <?php endif; ?>
 <?php endif; ?>
 </body>
 </html>

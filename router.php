@@ -46,4 +46,10 @@ if ($bloquear) {
     echo 'No encontrado';
     return true;
 }
+
+// El escáner ya no es público: vive dentro de registros.php (con sesión).
+if ($ruta === '/escaner.html') {
+    header('Location: /registros.php', true, 302);
+    return true;
+}
 return false;

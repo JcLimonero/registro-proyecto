@@ -3,3 +3,5 @@
     Require all denied
 </FilesMatch>
 RedirectMatch 404 /\.
+# El escáner ya no es público: vive dentro de registros.php (con sesión)
+RedirectMatch 302 ^/escaner\.html$ /registros.php
