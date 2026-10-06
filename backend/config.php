@@ -122,8 +122,17 @@ function createTable() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nombre VARCHAR(150) NOT NULL,
                 fecha_inicio DATETIME NOT NULL,
-                fecha_fin DATETIME NOT NULL
+                fecha_fin DATETIME NOT NULL,
+                ubicacion VARCHAR(500) NULL
             ) DEFAULT CHARSET=utf8mb4");
+            $stmtUbicacion = $conn->prepare(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eventos' AND COLUMN_NAME = 'ubicacion'"
+            );
+            $stmtUbicacion->execute();
+            if ((int) $stmtUbicacion->fetchColumn() === 0) {
+                $conn->exec('ALTER TABLE eventos ADD COLUMN ubicacion VARCHAR(500) NULL');
+            }
         } catch(PDOException $e) {
             error_log('createTable: ' . $e->getMessage());
         }
@@ -131,6 +140,18 @@ function createTable() {
 }
 
 /** Ahora en hora de México, como «Y-m-d H:i:s» (el reloj de PHP, no el de MySQL). */
+/** Liga http(s) de la ubicación, o cadena vacía si no es una URL usable. */
+function ligaUbicacion($valor) {
+    $valor = trim((string) $valor);
+    if ($valor === '' || strlen($valor) > 500) {
+        return '';
+    }
+    if (!preg_match('#^https?://#i', $valor) || filter_var($valor, FILTER_VALIDATE_URL) === false) {
+        return '';
+    }
+    return $valor;
+}
+
 function ahoraMexico() {
     return date('Y-m-d H:i:s');
 }
@@ -141,7 +162,7 @@ function ahoraMexico() {
  */
 function eventosVigentes(PDO $conn, $ahora = null) {
     $stmt = $conn->prepare(
-        'SELECT id, nombre, fecha_inicio, fecha_fin FROM eventos
+        'SELECT id, nombre, fecha_inicio, fecha_fin, ubicacion FROM eventos
          WHERE fecha_inicio <= :ahora AND fecha_fin >= :ahora2
          ORDER BY fecha_inicio, id'
     );
@@ -156,13 +177,13 @@ function eventosVigentes(PDO $conn, $ahora = null) {
  */
 function eventoReferencia(PDO $conn, $ahora = null) {
     $ahora = $ahora ?? ahoraMexico();
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin FROM eventos WHERE fecha_inicio > :ahora ORDER BY fecha_inicio, id LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, ubicacion FROM eventos WHERE fecha_inicio > :ahora ORDER BY fecha_inicio, id LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($fila) {
         return [$fila, 'proximo'];
     }
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin FROM eventos WHERE fecha_fin < :ahora ORDER BY fecha_fin DESC, id DESC LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, ubicacion FROM eventos WHERE fecha_fin < :ahora ORDER BY fecha_fin DESC, id DESC LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     return $fila ? [$fila, 'ultimo'] : [null, null];

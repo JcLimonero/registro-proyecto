@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datos.eventoNombre = result.evento || datos.eventoNombre;
                 datos.eventoInicio = fechaLegible(result.fecha_inicio);
                 datos.eventoFin = fechaLegible(result.fecha_fin);
+                datos.eventoUbicacion = result.ubicacion || '';
                 mostrarConfirmacion(datos);
                 
                 generarQR(idTicket);
@@ -189,6 +190,17 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('confirmEvento').textContent = datos.eventoNombre;
         document.getElementById('confirmInicio').textContent = datos.eventoInicio;
         document.getElementById('confirmFin').textContent = datos.eventoFin;
+        const filaUbicacion = document.getElementById('filaUbicacion');
+        const ligaUbicacion = document.getElementById('confirmUbicacion');
+        if (datos.eventoUbicacion) {
+            ligaUbicacion.href = datos.eventoUbicacion;
+            ligaUbicacion.textContent = datos.eventoUbicacion;
+            filaUbicacion.hidden = false;
+        } else {
+            ligaUbicacion.removeAttribute('href');
+            ligaUbicacion.textContent = '';
+            filaUbicacion.hidden = true;
+        }
         document.getElementById('fechaRegistro').textContent = datos.fechaRegistro;
         document.getElementById('confirmNombre').textContent = datos.nombre;
         document.getElementById('confirmNumEmpleado').textContent = datos.numEmpleado;

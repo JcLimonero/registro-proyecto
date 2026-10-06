@@ -231,7 +231,18 @@ h1 {
     text-align: center;
     color: #6c757d;
     font-size: 13px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+}
+
+.pase-ubicacion {
+    text-align: center;
+    margin: 0 0 16px;
+    overflow-wrap: anywhere;
+}
+
+.pase-ubicacion a {
+    color: #212529;
+    font-size: 13px;
 }
 
 .ticket-info h3 {

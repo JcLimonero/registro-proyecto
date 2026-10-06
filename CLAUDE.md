@@ -1,6 +1,6 @@
 # Sistema de registro con escáner QR
 
-App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un ticket con QR y validar su entrada con un escáner (lector que teclea el ID del ticket). La descarga del QR guarda el pase completo: evento, fechas y datos del registro.
+App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un ticket con QR y validar su entrada con un escáner (lector que teclea el ID del ticket). La descarga del QR guarda el pase completo: evento, fechas, ubicación (liga de Maps del evento) y datos del registro.
 
 ## Cómo correrlo
 1. `composer install` (PHPMailer, endroid/qr-code, TCPDF).

@@ -22,6 +22,7 @@ function eventoPublico(array $e) {
         'nombre'       => $e['nombre'],
         'fecha_inicio' => $e['fecha_inicio'],
         'fecha_fin'    => $e['fecha_fin'],
+        'ubicacion'    => ligaUbicacion($e['ubicacion'] ?? ''),
     ];
 }
 

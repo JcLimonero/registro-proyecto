@@ -410,16 +410,20 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
             if ($err !== null) {
                 volverConMensaje('error', $err, $vista);
             }
+            $ubicacion = ligaUbicacion($post['ubicacion'] ?? '');
+            if (trim((string) ($post['ubicacion'] ?? '')) !== '' && $ubicacion === '') {
+                volverConMensaje('error', 'La ubicación debe ser una liga http o https, por ejemplo la de Google Maps.', $vista);
+            }
             if ($sinId) {
-                $conn->prepare('INSERT INTO eventos (nombre, fecha_inicio, fecha_fin) VALUES (:n, :i, :f)')
-                    ->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin]);
+                $conn->prepare('INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, ubicacion) VALUES (:n, :i, :f, :u)')
+                    ->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':u' => $ubicacion === '' ? null : $ubicacion]);
                 volverConMensaje('ok', 'Evento creado.', $vista);
             }
             if ($id === null) {
                 volverConMensaje('error', 'Evento no válido.', $vista);
             }
-            $stmt = $conn->prepare('UPDATE eventos SET nombre = :n, fecha_inicio = :i, fecha_fin = :f WHERE id = :id');
-            $stmt->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':id' => $id]);
+            $stmt = $conn->prepare('UPDATE eventos SET nombre = :n, fecha_inicio = :i, fecha_fin = :f, ubicacion = :u WHERE id = :id');
+            $stmt->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':u' => $ubicacion === '' ? null : $ubicacion, ':id' => $id]);
             if (!$stmt->rowCount()) {
                 $existe = $conn->prepare('SELECT 1 FROM eventos WHERE id = :id');
                 $existe->execute([':id' => $id]);
@@ -599,6 +603,10 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 <label class="etiqueta sec" for="nuevo-fin">Fin</label>
                 <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
             </div>
+            <div class="cat-campo cat-ubicacion">
+                <label class="etiqueta sec" for="nuevo-ubicacion">Ubicación</label>
+                <input type="url" id="nuevo-ubicacion" name="ubicacion" maxlength="500" placeholder="https://maps.app.goo.gl/…" inputmode="url">
+            </div>
             <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" aria-label="Agregar" title="Agregar"><?= icono('agregar') ?></button>
         </form>
     </section>
@@ -611,6 +619,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 <col class="col-nombre">
                 <col class="col-fecha">
                 <col class="col-fecha">
+                <col class="col-ubicacion">
                 <col class="col-estado">
                 <col class="col-usos">
                 <col class="col-acciones">
@@ -620,6 +629,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     <th>Nombre</th>
                     <th>Inicio</th>
                     <th>Fin</th>
+                    <th>Ubicación</th>
                     <th>Estado</th>
                     <th>Registros</th>
                     <th>Acciones</th>
@@ -638,6 +648,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     </td>
                     <td><input type="datetime-local" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required form="evento-<?= $i ?>" aria-label="Inicio"></td>
                     <td><input type="datetime-local" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required form="evento-<?= $i ?>" aria-label="Fin"></td>
+                    <td><input type="url" name="ubicacion" value="<?= h($f['ubicacion'] ?? '') ?>" maxlength="500" placeholder="https://maps.app.goo.gl/…" form="evento-<?= $i ?>" aria-label="Ubicación" inputmode="url"></td>
                     <td><span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span></td>
                     <td class="cat-usos"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones">
@@ -854,7 +865,7 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
         try {
             createTable();
             if ($vista === 'eventos') {
-                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin,
+                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.ubicacion,
                         (SELECT COUNT(*) FROM registros r WHERE r.evento_id = e.id) AS usos
                     FROM eventos e ORDER BY e.fecha_inicio DESC, e.id DESC')->fetchAll(PDO::FETCH_ASSOC);
             } elseif ($vista === 'agencias') {
@@ -1248,6 +1259,7 @@ if ($autenticado && $vista === 'tabla') {
         .catalogo table.cat-tabla td::before { display: none; content: none; }
         .catalogo .cat-fila { margin: 0; }
         .catalogo input[type=text],
+        .catalogo input[type=url],
         .catalogo input[type=datetime-local] {
             width: 100%; min-width: 140px; height: 40px; border: 0; background: #eef0f3; padding: 0 10px;
             font: inherit; font-size: 16px; color: #212529;
@@ -1260,17 +1272,20 @@ if ($autenticado && $vista === 'tabla') {
         .pag-off { opacity: 0.4; pointer-events: none; }
         @media (min-width: 768px) {
             .cat-alta-form { grid-template-columns: 1fr auto; }
-            .cat-alta-evento { grid-template-columns: minmax(140px, 1.4fr) minmax(190px, 1fr) minmax(190px, 1fr) auto; }
+            .cat-alta-evento { grid-template-columns: minmax(120px, 1.1fr) minmax(160px, 1fr) minmax(160px, 1fr) auto; }
+            .cat-alta-evento .cat-ubicacion { grid-column: 1 / -1; }
             .catalogo table.cat-eventos { table-layout: fixed; min-width: 0; }
-            .catalogo table.cat-eventos .col-nombre { width: 14%; }
-            .catalogo table.cat-eventos .col-fecha { width: 24%; }
+            .catalogo table.cat-eventos .col-nombre { width: 12%; }
+            .catalogo table.cat-eventos .col-fecha { width: 16%; }
+            .catalogo table.cat-eventos .col-ubicacion { width: 22%; }
             .catalogo table.cat-eventos .col-estado { width: 10%; }
-            .catalogo table.cat-eventos .col-usos { width: 14%; }
-            .catalogo table.cat-eventos .col-acciones { width: 12%; }
+            .catalogo table.cat-eventos .col-usos { width: 10%; }
+            .catalogo table.cat-eventos .col-acciones { width: 14%; }
             .catalogo table.cat-eventos th,
             .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
             .catalogo table.cat-eventos th { white-space: normal; letter-spacing: 0.02em; line-height: 1.2; }
-            .catalogo table.cat-eventos input[type=datetime-local] { min-width: 0; font-size: 13px; padding: 0 6px; }
+            .catalogo table.cat-eventos input[type=datetime-local],
+            .catalogo table.cat-eventos input[type=url] { min-width: 0; font-size: 13px; padding: 0 6px; }
             .catalogo table.cat-eventos .cat-acciones { white-space: nowrap; }
         }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }

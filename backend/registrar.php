@@ -88,6 +88,7 @@ try {
         'evento' => $evento['nombre'],
         'fecha_inicio' => $evento['fecha_inicio'],
         'fecha_fin' => $evento['fecha_fin'],
+        'ubicacion' => ligaUbicacion($evento['ubicacion'] ?? ''),
     ]);
 
 } catch (PDOException $e) {

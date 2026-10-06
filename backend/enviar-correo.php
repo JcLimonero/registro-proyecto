@@ -67,6 +67,8 @@ function enviarCorreo($data) {
         $evento   = esc($data['eventoNombre'] ?? '');
         $inicio   = esc($data['eventoInicio'] ?? '');
         $fin      = esc($data['eventoFin'] ?? '');
+        $ubicacion = ligaUbicacion($data['eventoUbicacion'] ?? '');
+        $ubicacionHtml = $ubicacion === '' ? '' : '<p><a href="' . esc($ubicacion) . '">Ubicación del evento</a></p>';
         $empleado = esc($data['numEmpleado']);
         $agencia  = esc($data['agencia']);
         $puesto   = esc($data['puesto']);
@@ -128,8 +130,7 @@ function enviarCorreo($data) {
                     <div class='qr-container'>
                         <h3>📱 Código QR del Ticket</h3>
                         <img src='cid:{$cid}' alt='QR Code' style='max-width: 200px;' />
-                        <p><small>ubicación del evento</small></p>
-                        <p><small>https://maps.app.goo.gl/dLn5LBQcoTNA1g9j6</small></p>
+                        {$ubicacionHtml}
                     </div>
 
                     <p style='margin-top: 20px;'>
@@ -149,7 +150,8 @@ function enviarCorreo($data) {
         $eventoTxt = (string) ($data['eventoNombre'] ?? '');
         $inicioTxt = (string) ($data['eventoInicio'] ?? '');
         $finTxt = (string) ($data['eventoFin'] ?? '');
-        $mail->AltBody = "Registro Confirmado\nEvento: {$eventoTxt}\nInicio: {$inicioTxt}\nFin: {$finTxt}\nID Ticket: {$data['idTicket']}\nNombre: {$data['nombre']}\nFecha: {$data['fechaRegistro']}";
+        $ubicacionTxt = ligaUbicacion($data['eventoUbicacion'] ?? '');
+        $mail->AltBody = "Registro Confirmado\nEvento: {$eventoTxt}\nInicio: {$inicioTxt}\nFin: {$finTxt}\nUbicación: {$ubicacionTxt}\nID Ticket: {$data['idTicket']}\nNombre: {$data['nombre']}\nFecha: {$data['fechaRegistro']}";
 
         $mail->send();
         return ['success' => true, 'message' => 'Correo enviado exitosamente'];
