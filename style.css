@@ -291,6 +291,33 @@ h1 {
     margin: 0 0 12px;
 }
 
+.pase-lienzo {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    margin: 16px 0;
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+}
+
+.pase-lienzo-fondo {
+    position: absolute;
+    inset: 0;
+    background-color: #1a1410;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+}
+
+.pase-lienzo .confirmation-card {
+    position: relative;
+    z-index: 1;
+    margin: 14px;
+    border-radius: 16px;
+    border-color: #dee2e6;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+}
+
 .confirmation-card {
     background: #fff;
     padding: 20px 16px;

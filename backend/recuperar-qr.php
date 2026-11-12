@@ -4,6 +4,7 @@
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/enviar-correo.php';
+require_once __DIR__ . '/cartel-evento.php';
 require_once __DIR__ . '/pase-pie-evento.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -44,6 +45,7 @@ function filaARegistroRespuesta(array $fila) {
         'eventoUbicacion'=> ligaUbicacion($fila['ubicacion'] ?? ''),
         'eventoId'       => (int) $fila['evento_id'],
         'pasePie'        => pasePieUrlEvento(array_merge($fila, ['id' => (int) $fila['evento_id']])),
+        'eventoCartel'   => cartelUrlEvento(array_merge($fila, ['id' => (int) $fila['evento_id']])) ?: 'assets/posada-vanguardia.jpg',
     ];
 }
 
@@ -70,7 +72,8 @@ try {
     $sql = 'SELECT r.nombre, r.num_empleado, r.agencia, r.puesto, r.area, r.correo,
                    r.id_ticket, r.fecha_registro, r.evento_id,
                    e.nombre AS evento_nombre, e.fecha_inicio, e.fecha_fin, e.ubicacion,
-                   e.pase_pie, (LENGTH(e.pase_pie_datos) > 0) AS tiene_pase_pie_blob
+                   e.pase_pie, e.cartel, (LENGTH(e.cartel_datos) > 0) AS tiene_cartel_blob,
+                   (LENGTH(e.pase_pie_datos) > 0) AS tiene_pase_pie_blob
             FROM registros r
             INNER JOIN eventos e ON e.id = r.evento_id
             WHERE LOWER(TRIM(r.correo)) = :correo

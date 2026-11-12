@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototipo — mismo tamaño que el PNG actual</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Montserrat', system-ui, sans-serif;
+            background: #2b2b2b;
+            color: #f8f9fa;
+            padding: 16px;
+        }
+
+        .proto-meta {
+            max-width: 440px;
+            margin: 0 auto 12px;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #dee2e6;
+        }
+
+        .proto-meta strong { color: #fff; }
+
+        /*
+         * Ancho del lienzo = #pase en móvil (viewport 390px, .container padding 16px × 2).
+         * html2canvas usa scale: 2 → PNG ancho ≈ 358 × 2 = 716 px.
+         */
+        .lienzo-export {
+            position: relative;
+            width: 358px;
+            margin: 0 auto;
+            box-sizing: border-box;
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .lienzo-export__fondo {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.48)),
+                url('assets/posada-vanguardia.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .lienzo-export .confirmation-card {
+            position: relative;
+            z-index: 1;
+            margin: 14px;
+            border-radius: 16px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+        }
+
+        .proto-acciones {
+            max-width: 440px;
+            margin: 16px auto 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .proto-acciones button {
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 12px 16px;
+            border: 0;
+            cursor: pointer;
+            background: #fff;
+            color: #212529;
+        }
+
+        #medidas-png {
+            font-size: 12px;
+            color: #adb5bd;
+        }
+    </style>
+</head>
+<body>
+    <p class="proto-meta">
+        <strong>Prototipo</strong> — Mismo ancho que <code>#pase</code> en el registro (358px CSS).
+        La descarga actual usa <code>html2canvas</code> con <code>scale: 2</code> → PNG de unos <strong>716px</strong> de ancho (altura según contenido).
+    </p>
+
+    <!-- Este bloque simula lo que se capturaría si el fondo + card fueran un solo lienzo del mismo tamaño -->
+    <div class="lienzo-export" id="lienzo-export">
+        <div class="lienzo-export__fondo" aria-hidden="true"></div>
+        <article class="confirmation-card" id="pase">
+            <div class="pase-cabecera">
+                <img class="pase-logo" src="assets/grupo-vanguardia-logo.png" width="168" height="40" alt="Grupo Vanguardia" decoding="async">
+            </div>
+            <h2 class="pase-evento">Posada Grupo Vanguardia</h2>
+            <p class="pase-fechas">12/12/2026 09:00 — 12/12/2026 21:02</p>
+            <div class="ticket-info">
+                <h3>ID Ticket: TICKET-ejemplo-ABC123</h3>
+                <p><strong>Fecha de Registro:</strong> 11/11/2026 20:27</p>
+                <p><strong>Nombre:</strong> María García</p>
+                <p><strong>Número de Empleado:</strong> 10245</p>
+                <p><strong>Agencia:</strong> BMW</p>
+                <p><strong>Puesto:</strong> Gerente</p>
+                <p><strong>Área:</strong> Ventas</p>
+                <p><strong>Correo:</strong> ejemplo@vanguardia.com</p>
+            </div>
+            <div class="qr-container">
+                <div class="qr-principal">
+                    <p class="qr-leyenda">Tu entrada</p>
+                    <div id="qrCode"></div>
+                </div>
+                <div class="qr-ubicacion-bloque">
+                    <p class="qr-leyenda">Ubicación</p>
+                    <div id="qrUbicacion"></div>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <div class="proto-acciones">
+        <button type="button" id="btnMedir">Medir como PNG actual</button>
+        <button type="button" id="btnDescargar">Descargar PNG (scale 2)</button>
+        <span id="medidas-png"></span>
+    </div>
+
+    <p class="proto-meta" style="margin-top: 16px;">
+        Comparación: hoy solo se captura la tarjeta blanca (<code>#pase</code>), sin fondo.
+        Este prototipo mete el cartel detrás manteniendo el mismo ancho total del lienzo.
+    </p>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        const ticket = 'TICKET-ejemplo-ABC123';
+        new QRCode(document.getElementById('qrCode'), {
+            text: ticket,
+            width: 200,
+            height: 200,
+            colorDark: '#1a1a1a',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        new QRCode(document.getElementById('qrUbicacion'), {
+            text: 'https://maps.app.goo.gl/ejemplo',
+            width: 50,
+            height: 50,
+            correctLevel: QRCode.CorrectLevel.L
+        });
+
+        function medirPaseSolo() {
+            const pase = document.getElementById('pase');
+            const r = pase.getBoundingClientRect();
+            return {
+                cssW: Math.round(r.width),
+                cssH: Math.round(r.height),
+                pngW: Math.round(r.width * 2),
+                pngH: Math.round(r.height * 2)
+            };
+        }
+
+        function medirLienzo() {
+            const el = document.getElementById('lienzo-export');
+            const r = el.getBoundingClientRect();
+            return {
+                cssW: Math.round(r.width),
+                cssH: Math.round(r.height),
+                pngW: Math.round(r.width * 2),
+                pngH: Math.round(r.height * 2)
+            };
+        }
+
+        function pintarMedidas() {
+            const solo = medirPaseSolo();
+            const lienzo = medirLienzo();
+            document.getElementById('medidas-png').textContent =
+                'Hoy (#pase): ' + solo.pngW + '×' + solo.pngH + ' px · Prototipo (fondo+card): ' + lienzo.pngW + '×' + lienzo.pngH + ' px';
+        }
+
+        document.getElementById('btnMedir').addEventListener('click', pintarMedidas);
+        window.addEventListener('load', function () {
+            requestAnimationFrame(pintarMedidas);
+        });
+
+        document.getElementById('btnDescargar').addEventListener('click', function () {
+            const lienzo = document.getElementById('lienzo-export');
+            html2canvas(lienzo, {
+                backgroundColor: null,
+                scale: 2,
+                useCORS: false,
+                logging: false
+            }).then(function (canvas) {
+                const a = document.createElement('a');
+                a.download = 'prototipo-pase-' + canvas.width + 'x' + canvas.height + '.png';
+                a.href = canvas.toDataURL('image/png');
+                a.click();
+                document.getElementById('medidas-png').textContent =
+                    'PNG generado: ' + canvas.width + ' × ' + canvas.height + ' px';
+            });
+        });
+    </script>
+</body>
+</html>

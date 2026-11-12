@@ -379,6 +379,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 datos.eventoFin = fechaLegible(result.fecha_fin);
                 datos.eventoUbicacion = result.ubicacion || '';
                 datos.pasePie = result.pasePie || '';
+                datos.eventoCartel = result.cartel
+                    || urlCartel(eventoPorId(datos.eventoId) || eventoPredeterminado(eventosVigentes))
+                    || CARTEL_DEFECTO;
                 presentarPase(datos);
                 
                 await enviarCorreo(datos);
@@ -450,10 +453,43 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('confirmArea').textContent = datos.area;
         document.getElementById('confirmCorreo').textContent = datos.correo;
         actualizarCabeceraPase(datos.pasePie || '');
+        actualizarFondoPase(datos.eventoCartel || datos.cartel || CARTEL_DEFECTO);
 
         formContainer.style.display = 'none';
         confirmationContainer.style.display = 'block';
         togglePaginaConfirmacion(true);
+    }
+
+    function actualizarFondoPase(src) {
+        const fondo = document.getElementById('paseLienzoFondo');
+        if (!fondo) {
+            return;
+        }
+        const url = (src || '').trim();
+        if (!url) {
+            fondo.style.backgroundImage = '';
+            return;
+        }
+        const velo = 'linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.48))';
+        fondo.style.backgroundImage = velo + ", url('" + url.replace(/'/g, '%27') + "')";
+    }
+
+    function esperarFondoPase(src) {
+        const url = (src || CARTEL_DEFECTO).trim() || CARTEL_DEFECTO;
+        return new Promise(function (resolve) {
+            const img = new Image();
+            if (/\/backend\//.test(url)) {
+                img.crossOrigin = 'anonymous';
+            }
+            const t = window.setTimeout(resolve, 12000);
+            const fin = function () {
+                window.clearTimeout(t);
+                resolve();
+            };
+            img.onload = fin;
+            img.onerror = fin;
+            img.src = url;
+        });
     }
 
     function actualizarCabeceraPase(src) {
@@ -570,8 +606,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     descargarQRBtn.addEventListener('click', function() {
-        const pase = document.getElementById('pase');
-        if (!pase || typeof html2canvas !== 'function') {
+        const lienzo = document.getElementById('paseLienzo');
+        if (!lienzo || typeof html2canvas !== 'function') {
             window.alert('No se pudo iniciar la descarga. Recarga la página e intenta de nuevo.');
             return;
         }
@@ -580,9 +616,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const nombre = 'QR-' + [evento, ticketId].filter(Boolean).join('-').replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/g, '_') + '.png';
 
         descargarQRBtn.disabled = true;
-        esperarImagenesQr(pase).then(function () {
+        const fondoEl = document.getElementById('paseLienzoFondo');
+        const fondoStyle = fondoEl && fondoEl.style.backgroundImage;
+        const fondoUrlMatch = fondoStyle && fondoStyle.match(/url\(['"]?([^'")]+)/);
+        const fondoUrl = fondoUrlMatch ? fondoUrlMatch[1] : CARTEL_DEFECTO;
+        Promise.all([
+            esperarFondoPase(fondoUrl),
+            esperarImagenesQr(lienzo)
+        ]).then(function () {
             const opcionesBase = {
-                backgroundColor: '#ffffff',
+                backgroundColor: null,
                 scale: 2,
                 logging: false,
                 imageTimeout: 15000,
@@ -592,8 +635,9 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             const pie = document.getElementById('paseCabeceraImg');
             const pieSrc = pie && !pie.hidden && (pie.getAttribute('src') || '').trim();
-            const necesitaCors = pieSrc !== '' && /\/backend\//.test(pieSrc);
-            return html2canvas(pase, Object.assign({}, opcionesBase, necesitaCors
+            const necesitaCors = (pieSrc !== '' && /\/backend\//.test(pieSrc))
+                || /\/backend\//.test(fondoUrl);
+            return html2canvas(lienzo, Object.assign({}, opcionesBase, necesitaCors
                 ? { useCORS: true, allowTaint: false }
                 : { useCORS: false, allowTaint: false }));
         }).then(function (canvas) {
@@ -631,6 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
             filaQrUbi.hidden = true;
         }
         actualizarCabeceraPase('');
+        actualizarFondoPase('');
         cargarCatalogos();
     });
 });
