@@ -454,11 +454,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const url = (src || '').trim();
         if (url) {
+            img.crossOrigin = 'anonymous';
             img.src = url;
             img.alt = 'Información del evento';
             bloque.hidden = false;
         } else {
             img.removeAttribute('src');
+            img.removeAttribute('crossorigin');
             img.alt = '';
             bloque.hidden = true;
         }
@@ -510,12 +512,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (el.tagName === 'CANVAS') {
                 return Promise.resolve();
             }
+            const src = (el.getAttribute('src') || '').trim();
+            if (src === '') {
+                return Promise.resolve();
+            }
+            if (el.closest('[hidden]')) {
+                return Promise.resolve();
+            }
             if (el.complete && el.naturalWidth > 0) {
                 return Promise.resolve();
             }
             return new Promise(function (resolve) {
-                el.onload = resolve;
-                el.onerror = resolve;
+                const t = window.setTimeout(resolve, 12000);
+                const fin = function () {
+                    window.clearTimeout(t);
+                    resolve();
+                };
+                el.onload = fin;
+                el.onerror = fin;
             });
         }));
     }
@@ -541,22 +555,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     descargarQRBtn.addEventListener('click', function() {
         const pase = document.getElementById('pase');
+        if (!pase || typeof html2canvas !== 'function') {
+            window.alert('No se pudo iniciar la descarga. Recarga la página e intenta de nuevo.');
+            return;
+        }
         const ticketId = document.getElementById('ticketId').textContent;
         const evento = document.getElementById('confirmEvento').textContent;
         const nombre = 'QR-' + [evento, ticketId].filter(Boolean).join('-').replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/g, '_') + '.png';
 
+        descargarQRBtn.disabled = true;
         esperarImagenesQr(pase).then(function () {
-            return html2canvas(pase, {
+            const opciones = {
                 backgroundColor: '#ffffff',
                 scale: 2,
                 useCORS: true,
-                logging: false
-            });
+                allowTaint: false,
+                logging: false,
+                imageTimeout: 15000,
+                ignoreElements: function (node) {
+                    return !!(node.closest && node.closest('[hidden]'));
+                }
+            };
+            return html2canvas(pase, opciones);
         }).then(function (canvas) {
             const link = document.createElement('a');
             link.download = nombre;
             link.href = canvas.toDataURL('image/png');
             link.click();
+        }).catch(function (err) {
+            console.error('Descarga QR:', err);
+            window.alert('No se pudo generar la imagen del pase. Si acabas de subir la imagen inferior, espera un momento y vuelve a intentar.');
+        }).finally(function () {
+            descargarQRBtn.disabled = false;
         });
     });
 

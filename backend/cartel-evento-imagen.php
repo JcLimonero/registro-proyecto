@@ -35,5 +35,6 @@ restaurarCartelEventoEnDisco($id, $fila['cartel'] ?? '', $fila['cartel_datos'], 
 
 header('Content-Type: ' . $mime);
 header('Cache-Control: public, max-age=86400');
+header('Access-Control-Allow-Origin: *');
 header('X-Content-Type-Options: nosniff');
 echo $fila['cartel_datos'];

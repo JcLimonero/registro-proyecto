@@ -32,5 +32,6 @@ restaurarPasePieEventoEnDisco($id, $fila['pase_pie'] ?? '', $fila['pase_pie_dato
 
 header('Content-Type: ' . $mime);
 header('Cache-Control: public, max-age=86400');
+header('Access-Control-Allow-Origin: *');
 header('X-Content-Type-Options: nosniff');
 echo $fila['pase_pie_datos'];
