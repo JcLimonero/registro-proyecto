@@ -65,13 +65,20 @@ try {
         throw new Exception('El área elegida no existe.');
     }
 
+    $numEmpleado = trim($data['numEmpleado']);
+    $ya = $conn->prepare('SELECT 1 FROM registros WHERE num_empleado = :n AND evento_id = :e LIMIT 1');
+    $ya->execute([':n' => $numEmpleado, ':e' => (int) $evento['id']]);
+    if ($ya->fetchColumn()) {
+        throw new Exception('Este número de empleado ya está registrado en este evento.');
+    }
+
     $sql = "INSERT INTO registros (nombre, num_empleado, agencia, puesto, area, correo, id_ticket, fecha_registro, evento_id)
             VALUES (:nombre, :num_empleado, :agencia, :puesto, :area, :correo, :id_ticket, :fecha_registro, :evento_id)";
 
     $stmt = $conn->prepare($sql);
     $stmt->execute([
         ':nombre' => $data['nombre'],
-        ':num_empleado' => $data['numEmpleado'],
+        ':num_empleado' => $numEmpleado,
         ':agencia' => $agencia,
         ':puesto' => $data['puesto'],
         ':area' => $area,
@@ -93,9 +100,13 @@ try {
 
 } catch (PDOException $e) {
     error_log('registrar.php: ' . $e->getMessage());
+    $duplicado = (int) ($e->errorInfo[1] ?? 0) === 1062
+        && str_contains($e->getMessage(), 'uniq_empleado_evento');
     echo json_encode([
         'success' => false,
-        'message' => 'No se pudo guardar el registro. Intenta de nuevo.'
+        'message' => $duplicado
+            ? 'Este número de empleado ya está registrado en este evento.'
+            : 'No se pudo guardar el registro. Intenta de nuevo.'
     ]);
 } catch (Exception $e) {
     echo json_encode([

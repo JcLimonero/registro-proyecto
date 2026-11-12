@@ -139,6 +139,15 @@ function createTable() {
             }
             $conn->exec('UPDATE eventos SET registro_inicio = fecha_inicio WHERE registro_inicio IS NULL');
             $conn->exec('UPDATE eventos SET registro_fin = fecha_fin WHERE registro_fin IS NULL');
+
+            $stmtIndice = $conn->prepare(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'registros' AND INDEX_NAME = 'uniq_empleado_evento'"
+            );
+            $stmtIndice->execute();
+            if ((int) $stmtIndice->fetchColumn() === 0) {
+                $conn->exec('ALTER TABLE registros ADD UNIQUE KEY uniq_empleado_evento (num_empleado, evento_id)');
+            }
         } catch(PDOException $e) {
             error_log('createTable: ' . $e->getMessage());
         }

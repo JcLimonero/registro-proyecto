@@ -845,7 +845,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (PDOException $e) {
             error_log('registros.php: ' . $e->getMessage());
-            volverConMensaje('error', 'No se pudo completar la operación.');
+            $duplicado = (int) ($e->errorInfo[1] ?? 0) === 1062
+                && str_contains($e->getMessage(), 'uniq_empleado_evento');
+            volverConMensaje('error', $duplicado
+                ? 'Ese número de empleado ya está registrado en este evento.'
+                : 'No se pudo completar la operación.');
         }
     }
 }
