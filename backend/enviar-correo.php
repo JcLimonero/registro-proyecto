@@ -171,17 +171,19 @@ function enviarCorreo($data) {
     }
 }
 
-try {
-    $data = json_decode(file_get_contents('php://input'), true);
-    if (!is_array($data)) {
-        throw new Exception('Solicitud inválida');
+if (basename($_SERVER['SCRIPT_FILENAME'] ?? '') === 'enviar-correo.php') {
+    try {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            throw new Exception('Solicitud inválida');
+        }
+        $result = enviarCorreo($data);
+        echo json_encode($result);
+    } catch (Throwable $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
     }
-    $result = enviarCorreo($data);
-    echo json_encode($result);
-} catch (Throwable $e) {
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
 }
 ?>

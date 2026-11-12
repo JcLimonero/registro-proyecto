@@ -1,8 +1,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('registroForm');
+    const recuperarForm = document.getElementById('recuperarForm');
     const pagina = document.querySelector('.pagina');
     const formContainer = document.getElementById('formContainer');
     const confirmationContainer = document.getElementById('confirmationContainer');
+    const enlaceRecuperar = document.getElementById('enlaceRecuperar');
+    const btnMostrarRecuperar = document.getElementById('btnMostrarRecuperar');
+    const btnVolverRegistro = document.getElementById('btnVolverRegistro');
+    const btnRecuperarDesdeConfirmacion = document.getElementById('btnRecuperarDesdeConfirmacion');
+    const errorRecuperar = document.getElementById('errorRecuperar');
+    const grupoEventoRecuperar = document.getElementById('grupoEventoRecuperar');
+    const selectEventoRecuperar = document.getElementById('eventoRecuperar');
+    const btnRecuperar = document.getElementById('btnRecuperar');
+    const confirmAviso = document.getElementById('confirmAviso');
 
     function togglePaginaConfirmacion(visible) {
         if (pagina) {
@@ -26,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let qrCodeInstance = null;
     let eventosVigentes = [];
+    let registroAbierto = false;
     const CARTEL_DEFECTO = 'assets/posada-vanguardia.jpg';
 
     function urlCartel(evento) {
@@ -87,12 +98,62 @@ document.addEventListener('DOMContentLoaded', function() {
         errorForm.hidden = !texto;
     }
 
+    function mostrarErrorRecuperar(texto) {
+        errorRecuperar.textContent = texto;
+        errorRecuperar.hidden = !texto;
+    }
+
+    function mostrarEnlaceRecuperar(visible) {
+        if (enlaceRecuperar) {
+            enlaceRecuperar.hidden = !visible;
+        }
+    }
+
+    function vistaRecuperar() {
+        if (recuperarForm) {
+            recuperarForm.hidden = false;
+        }
+        form.hidden = true;
+        mostrarEnlaceRecuperar(false);
+        avisoCerrado.hidden = true;
+        estadoCarga.hidden = true;
+        mostrarError('');
+        mostrarErrorRecuperar('');
+        confirmationContainer.style.display = 'none';
+        formContainer.style.display = 'block';
+        togglePaginaConfirmacion(false);
+    }
+
+    function volverDesdeRecuperar() {
+        if (recuperarForm) {
+            recuperarForm.hidden = true;
+        }
+        mostrarErrorRecuperar('');
+        if (registroAbierto) {
+            form.hidden = false;
+            mostrarEnlaceRecuperar(true);
+            avisoCerrado.hidden = true;
+        } else {
+            form.hidden = true;
+            avisoCerrado.hidden = false;
+            mostrarEnlaceRecuperar(true);
+        }
+        grupoEventoRecuperar.hidden = true;
+        selectEventoRecuperar.required = false;
+        selectEventoRecuperar.innerHTML = '';
+    }
+
     function mostrarCerrado(texto) {
+        registroAbierto = false;
         estadoCarga.hidden = true;
         form.hidden = true;
+        if (recuperarForm) {
+            recuperarForm.hidden = true;
+        }
         eventoActual.hidden = true;
         avisoCerradoTexto.textContent = texto;
         avisoCerrado.hidden = false;
+        mostrarEnlaceRecuperar(true);
     }
 
     function textoCerrado(ref) {
@@ -132,6 +193,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            registroAbierto = true;
+            if (recuperarForm) {
+                recuperarForm.hidden = true;
+            }
+
             llenarSelect(selectAgencia, 'Selecciona una agencia', cat.agencias, a => a.nombre);
             llenarSelect(selectArea, 'Selecciona un área', cat.areas, a => a.nombre);
 
@@ -155,6 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             estadoCarga.hidden = true;
             form.hidden = false;
+            mostrarEnlaceRecuperar(true);
             if (!cat.agencias.length || !cat.areas.length) {
                 mostrarError('El registro aún no está disponible: faltan agencias o áreas por configurar.');
             } else {
@@ -182,6 +249,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    async function solicitarRecuperacion(correo, reenviarCorreo) {
+        const eventoId = selectEventoRecuperar.value || '';
+        const payload = { correo: correo.trim(), reenviarCorreo: !!reenviarCorreo };
+        if (eventoId) {
+            payload.eventoId = eventoId;
+        }
+        const response = await fetch('backend/recuperar-qr.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return response.json();
+    }
+
+    if (btnMostrarRecuperar) {
+        btnMostrarRecuperar.addEventListener('click', vistaRecuperar);
+    }
+    if (btnVolverRegistro) {
+        btnVolverRegistro.addEventListener('click', volverDesdeRecuperar);
+    }
+    if (btnRecuperarDesdeConfirmacion) {
+        btnRecuperarDesdeConfirmacion.addEventListener('click', function () {
+            vistaRecuperar();
+        });
+    }
+
+    if (recuperarForm) {
+        recuperarForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            mostrarErrorRecuperar('');
+            const correo = document.getElementById('correoRecuperar').value;
+            const reenviar = document.getElementById('reenviarCorreo').checked;
+            btnRecuperar.disabled = true;
+            try {
+                const result = await solicitarRecuperacion(correo, reenviar);
+                if (result.necesita_evento && result.eventos && result.eventos.length) {
+                    llenarSelect(selectEventoRecuperar, 'Selecciona el evento', result.eventos, ev => String(ev.id));
+                    grupoEventoRecuperar.hidden = false;
+                    selectEventoRecuperar.required = true;
+                    mostrarErrorRecuperar(result.message || 'Elige el evento de tu registro.');
+                    return;
+                }
+                if (!result.success || !result.registro) {
+                    mostrarErrorRecuperar(result.message || 'No se encontró el registro.');
+                    return;
+                }
+                let aviso = '';
+                if (reenviar && result.correoEnviado === false) {
+                    aviso = result.mensajeCorreo || 'No se pudo reenviar el correo; aún puedes ver y descargar tu QR aquí.';
+                } else if (reenviar && result.correoEnviado) {
+                    aviso = 'Te reenviamos el correo con tu QR.';
+                }
+                mostrarConfirmacion(result.registro, aviso);
+                generarQrs(result.registro.idTicket, result.registro.eventoUbicacion || '');
+            } catch (err) {
+                console.error(err);
+                mostrarErrorRecuperar('No se pudo completar la recuperación. Intenta de nuevo.');
+            } finally {
+                btnRecuperar.disabled = false;
+            }
+        });
+    }
 
     cargarCatalogos();
 
@@ -255,7 +385,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return `TICKET-${timestamp}-${random}`;
     }
 
-    function mostrarConfirmacion(datos) {
+    function mostrarConfirmacion(datos, avisoExtra) {
+        if (confirmAviso) {
+            if (avisoExtra) {
+                confirmAviso.textContent = avisoExtra;
+                confirmAviso.hidden = false;
+            } else {
+                confirmAviso.textContent = '';
+                confirmAviso.hidden = true;
+            }
+        }
         document.getElementById('ticketId').textContent = datos.idTicket;
         document.getElementById('confirmEvento').textContent = datos.eventoNombre;
         document.getElementById('confirmInicio').textContent = datos.eventoInicio;
@@ -381,6 +520,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     nuevoRegistroBtn.addEventListener('click', function() {
         form.reset();
+        if (recuperarForm) {
+            recuperarForm.reset();
+            recuperarForm.hidden = true;
+        }
+        document.getElementById('reenviarCorreo').checked = true;
+        grupoEventoRecuperar.hidden = true;
+        selectEventoRecuperar.innerHTML = '';
         confirmationContainer.style.display = 'none';
         formContainer.style.display = 'block';
         togglePaginaConfirmacion(false);

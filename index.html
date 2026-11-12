@@ -27,6 +27,33 @@
                 <p id="avisoCerradoTexto"></p>
             </div>
 
+            <p class="alternar-formulario" id="enlaceRecuperar" hidden>
+                <button type="button" class="btn-texto" id="btnMostrarRecuperar">¿Perdiste tu QR? Recupéralo con tu correo</button>
+            </p>
+
+            <form id="recuperarForm" hidden>
+                <p class="recuperar-intro">Escribe el mismo correo con el que te registraste. Si quieres, te reenviamos el pase por correo.</p>
+                <div class="form-group" id="grupoEventoRecuperar" hidden>
+                    <label for="eventoRecuperar">Evento</label>
+                    <select id="eventoRecuperar" name="eventoId"></select>
+                </div>
+                <div class="form-group">
+                    <label for="correoRecuperar">Correo electrónico</label>
+                    <input type="email" id="correoRecuperar" name="correo" required autocomplete="email">
+                </div>
+                <div class="form-group form-group--inline">
+                    <label class="checkbox-recuperar">
+                        <input type="checkbox" id="reenviarCorreo" name="reenviarCorreo" checked>
+                        Enviar también el QR a mi correo
+                    </label>
+                </div>
+                <p class="error-form" id="errorRecuperar" role="alert" hidden></p>
+                <button type="submit" class="btn-submit" id="btnRecuperar">Recuperar mi QR</button>
+                <p class="alternar-formulario">
+                    <button type="button" class="btn-texto" id="btnVolverRegistro">Volver al registro</button>
+                </p>
+            </form>
+
             <form id="registroForm" hidden>
                 <div class="form-group" id="grupoEvento" hidden>
                     <label for="eventoId">Evento</label>
@@ -71,6 +98,7 @@
 
         <div class="confirmation-container" id="confirmationContainer" style="display: none;">
             <h1>¡Registro Exitoso!</h1>
+            <p class="confirm-aviso" id="confirmAviso" role="status" hidden></p>
             <p class="pase-ubicacion-enlace" id="filaUbicacion" hidden>
                 <a id="confirmUbicacion" target="_blank" rel="noopener">Abrir ubicación en Google Maps</a>
             </p>
@@ -101,7 +129,10 @@
                 </div>
             </div>
             <button id="descargarQR" class="btn-download">Descargar QR</button>
-            <button id="nuevoRegistro" class="btn-new">Nuevo Registro</button>
+            <button id="nuevoRegistro" class="btn-new">Nuevo registro</button>
+            <p class="alternar-formulario confirmacion-extra">
+                <button type="button" class="btn-texto" id="btnRecuperarDesdeConfirmacion">Recuperar otro QR con correo</button>
+            </p>
         </div>
         </div>
     </main>
