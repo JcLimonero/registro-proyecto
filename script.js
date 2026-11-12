@@ -293,6 +293,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         llenarSelect(selectEventoRecuperar, '', [unico], ev => String(ev.id));
                         selectEventoRecuperar.selectedIndex = 1;
                         grupoEventoRecuperar.hidden = true;
+                        selectEventoRecuperar.value = String(unico.id);
                         const retry = await solicitarRecuperacion(correo, reenviar);
                         if (retry.success && retry.registro) {
                             let aviso = '';
@@ -301,8 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else if (reenviar && retry.correoEnviado) {
                                 aviso = 'Te reenviamos el correo con tu QR.';
                             }
-                            mostrarConfirmacion(retry.registro, aviso);
-                            generarQrs(retry.registro.idTicket, retry.registro.eventoUbicacion || '');
+                            presentarPase(retry.registro, aviso);
                             return;
                         }
                         mostrarErrorRecuperar(retry.message || 'No se encontró el registro.');
@@ -324,8 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (reenviar && result.correoEnviado) {
                     aviso = 'Te reenviamos el correo con tu QR.';
                 }
-                mostrarConfirmacion(result.registro, aviso);
-                generarQrs(result.registro.idTicket, result.registro.eventoUbicacion || '');
+                presentarPase(result.registro, aviso);
             } catch (err) {
                 console.error(err);
                 mostrarErrorRecuperar('No se pudo completar la recuperación. Intenta de nuevo.');
@@ -380,8 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datos.eventoFin = fechaLegible(result.fecha_fin);
                 datos.eventoUbicacion = result.ubicacion || '';
                 datos.pasePie = result.pasePie || '';
-                mostrarConfirmacion(datos);
-                generarQrs(idTicket, datos.eventoUbicacion || '');
+                presentarPase(datos);
                 
                 await enviarCorreo(datos);
             } else {
@@ -406,6 +404,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const timestamp = Date.now().toString(36);
         const random = Math.random().toString(36).substring(2, 8).toUpperCase();
         return `TICKET-${timestamp}-${random}`;
+    }
+
+    function presentarPase(datos, avisoExtra) {
+        if (recuperarForm) {
+            recuperarForm.hidden = true;
+        }
+        mostrarConfirmacion(datos, avisoExtra);
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                generarQrs(datos.idTicket, datos.eventoUbicacion || '');
+            });
+        });
     }
 
     function mostrarConfirmacion(datos, avisoExtra) {
@@ -454,7 +464,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const url = (src || '').trim();
         if (url) {
-            img.crossOrigin = 'anonymous';
+            if (/\/backend\//.test(url)) {
+                img.crossOrigin = 'anonymous';
+            } else {
+                img.removeAttribute('crossorigin');
+            }
             img.src = url;
             img.alt = 'Información del evento';
             bloque.hidden = false;
@@ -565,18 +579,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         descargarQRBtn.disabled = true;
         esperarImagenesQr(pase).then(function () {
-            const opciones = {
+            const opcionesBase = {
                 backgroundColor: '#ffffff',
                 scale: 2,
-                useCORS: true,
-                allowTaint: false,
                 logging: false,
                 imageTimeout: 15000,
                 ignoreElements: function (node) {
                     return !!(node.closest && node.closest('[hidden]'));
                 }
             };
-            return html2canvas(pase, opciones);
+            const pie = document.getElementById('pasePieImg');
+            const pieSrc = pie && (pie.getAttribute('src') || '').trim();
+            const necesitaCors = pieSrc !== '' && /\/backend\//.test(pieSrc);
+            return html2canvas(pase, Object.assign({}, opcionesBase, necesitaCors
+                ? { useCORS: true, allowTaint: false }
+                : { useCORS: false, allowTaint: false }));
         }).then(function (canvas) {
             const link = document.createElement('a');
             link.download = nombre;
