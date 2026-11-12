@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('registroForm');
+    const pagina = document.querySelector('.pagina');
     const formContainer = document.getElementById('formContainer');
     const confirmationContainer = document.getElementById('confirmationContainer');
+
+    function mostrarConfirmacion(visible) {
+        if (pagina) {
+            pagina.classList.toggle('pagina--confirmacion', visible);
+        }
+    }
     const nuevoRegistroBtn = document.getElementById('nuevoRegistro');
     const descargarQRBtn = document.getElementById('descargarQR');
 
@@ -211,6 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         formContainer.style.display = 'none';
         confirmationContainer.style.display = 'block';
+        mostrarConfirmacion(true);
     }
 
     function generarQR(texto) {
@@ -264,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         form.reset();
         confirmationContainer.style.display = 'none';
         formContainer.style.display = 'block';
+        mostrarConfirmacion(false);
         document.getElementById('qrCode').innerHTML = '';
         cargarCatalogos();
     });

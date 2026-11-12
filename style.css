@@ -30,35 +30,40 @@ body {
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     padding: 12px;
 }
 
 .pagina {
     width: 100%;
-    max-width: 480px;
-    margin: auto 0;
+    max-width: 440px;
+    margin: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
 }
 
 .cartel {
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    max-height: min(42vh, 360px);
+    object-fit: cover;
+    object-position: center top;
 }
 
 .container {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     padding: 24px 16px;
     width: 100%;
-    max-width: 480px;
-    margin: auto 0;
+    margin: 0;
+}
+
+.pagina.pagina--confirmacion .cartel {
+    display: none;
 }
 
 button {
@@ -326,30 +331,47 @@ h1 {
     color: #212529;
 }
 
-/* ---------- Escritorio: la tarjeta se centra y no se estira ---------- */
+/* ---------- Escritorio: cartel + formulario en una sola tarjeta centrada ---------- */
 @media (min-width: 768px) {
     body {
+        align-items: center;
         padding: 24px;
     }
 
     .pagina {
-        max-width: 980px;
+        max-width: 920px;
         flex-direction: row;
-        align-items: flex-start;
-        gap: 24px;
+        align-items: stretch;
+        gap: 0;
     }
 
     .cartel {
-        width: 42%;
-        max-width: 420px;
+        flex: 0 0 38%;
+        width: 38%;
+        max-width: none;
+        align-self: stretch;
+        object-fit: cover;
+        object-position: center top;
         position: sticky;
         top: 24px;
+        max-height: calc(100dvh - 48px);
     }
 
     .container {
         flex: 1;
-        max-width: none;
-        margin: 0;
+        min-width: 0;
+        min-height: 480px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 32px 40px 40px;
+    }
+
+    .pagina.pagina--confirmacion {
+        max-width: 520px;
+    }
+
+    .pagina.pagina--confirmacion .container {
         padding: 40px;
     }
 
