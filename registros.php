@@ -1481,8 +1481,22 @@ if ($autenticado && $vista === 'tabla') {
         .dlg-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
         .dlg-ancho { grid-column: 1 / -1; }
         .dlg-cartel-prev { display: block; max-width: 140px; margin-top: 8px; border-radius: 6px; object-fit: cover; }
-        .dialog-pie { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px; border-top: 1px solid #eef0f3; }
-        .dialog-pie .btn-primario { flex: 1; min-width: 140px; }
+        .dialog-pie {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 16px 20px;
+            border-top: 1px solid #eef0f3;
+        }
+        .dialog-pie .btn-primario,
+        .dialog-pie .btn-sec,
+        .dialog-pie a.btn-sec {
+            flex: 1 1 calc(50% - 4px);
+            width: auto;
+            min-width: 0;
+            justify-content: center;
+            text-align: center;
+        }
         .dialog-errores { color: #b02a37; margin: 0 20px 12px; padding-left: 20px; }
         .dialog-ticket { margin: 0 20px 12px; }
         /* Alta de catálogos (misma barra visual que filtros) */
