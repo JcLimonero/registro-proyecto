@@ -71,11 +71,13 @@
 
         <div class="confirmation-container" id="confirmationContainer" style="display: none;">
             <h1>¡Registro Exitoso!</h1>
+            <p class="pase-ubicacion-enlace" id="filaUbicacion" hidden>
+                <a id="confirmUbicacion" target="_blank" rel="noopener">Abrir ubicación en Google Maps</a>
+            </p>
             <div class="confirmation-card" id="pase">
-                <p class="pase-marca">Grupo Vanguardia</p>
+                <img class="pase-logo" src="assets/grupo-vanguardia-logo.png" width="168" height="40" alt="Grupo Vanguardia">
                 <h2 class="pase-evento" id="confirmEvento"></h2>
                 <p class="pase-fechas"><span id="confirmInicio"></span> — <span id="confirmFin"></span></p>
-                <p class="pase-ubicacion" id="filaUbicacion" hidden><a id="confirmUbicacion" target="_blank" rel="noopener"></a></p>
                 <div class="ticket-info">
                     <h3>ID Ticket: <span id="ticketId"></span></h3>
                     <p><strong>Fecha de Registro:</strong> <span id="fechaRegistro"></span></p>
@@ -92,10 +94,10 @@
                         <p class="qr-leyenda">Tu entrada</p>
                         <div id="qrCode"></div>
                     </div>
-                    <div class="qr-ubicacion-bloque" id="filaQrUbicacion" hidden>
-                        <p class="qr-leyenda">Ubicación</p>
-                        <div id="qrUbicacion"></div>
-                    </div>
+                </div>
+                <div class="pase-pie" id="pasePie" hidden>
+                    <p class="qr-leyenda">Ubicación del evento</p>
+                    <div id="qrUbicacion"></div>
                 </div>
             </div>
             <button id="descargarQR" class="btn-download">Descargar QR</button>

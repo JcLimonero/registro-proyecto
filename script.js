@@ -264,7 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const ligaUbicacion = document.getElementById('confirmUbicacion');
         if (datos.eventoUbicacion) {
             ligaUbicacion.href = datos.eventoUbicacion;
-            ligaUbicacion.textContent = datos.eventoUbicacion;
             filaUbicacion.hidden = false;
         } else {
             ligaUbicacion.removeAttribute('href');
@@ -287,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function generarQrs(ticketId, ubicacionUrl) {
         const qrContainer = document.getElementById('qrCode');
         const ubicacionCont = document.getElementById('qrUbicacion');
-        const filaUbicacionQr = document.getElementById('filaQrUbicacion');
+        const pasePie = document.getElementById('pasePie');
         if (!qrContainer) {
             return;
         }
@@ -306,18 +305,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 correctLevel: QRCode.CorrectLevel.H
             });
             const url = (ubicacionUrl || '').trim();
-            if (url && ubicacionCont && filaUbicacionQr) {
-                filaUbicacionQr.hidden = false;
+            if (url && ubicacionCont && pasePie) {
+                pasePie.hidden = false;
                 new QRCode(ubicacionCont, {
                     text: url,
-                    width: 88,
-                    height: 88,
+                    width: 128,
+                    height: 128,
                     colorDark: '#1a1a1a',
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel.M
                 });
-            } else if (filaUbicacionQr) {
-                filaUbicacionQr.hidden = true;
+            } else if (pasePie) {
+                pasePie.hidden = true;
             }
         };
 
@@ -390,9 +389,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (qrUb) {
             qrUb.innerHTML = '';
         }
-        const filaQrUbi = document.getElementById('filaQrUbicacion');
-        if (filaQrUbi) {
-            filaQrUbi.hidden = true;
+        const pasePie = document.getElementById('pasePie');
+        if (pasePie) {
+            pasePie.hidden = true;
         }
         cargarCatalogos();
     });

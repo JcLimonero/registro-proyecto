@@ -234,14 +234,24 @@ h1 {
     border: 1px solid #adb5bd;
 }
 
-.pase-marca {
+.pase-logo {
+    display: block;
+    width: 168px;
+    height: auto;
+    margin: 0 auto 12px;
+}
+
+.pase-ubicacion-enlace {
     text-align: center;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #6c757d;
-    margin-bottom: 8px;
+    margin: 0 0 12px;
+}
+
+.pase-ubicacion-enlace a {
+    font-size: 14px;
+    font-weight: 500;
+    color: #212529;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .pase-evento {
@@ -258,17 +268,6 @@ h1 {
     color: #6c757d;
     font-size: 13px;
     margin-bottom: 8px;
-}
-
-.pase-ubicacion {
-    text-align: center;
-    margin: 0 0 16px;
-    overflow-wrap: anywhere;
-}
-
-.pase-ubicacion a {
-    color: #212529;
-    font-size: 13px;
 }
 
 .ticket-info h3 {
@@ -292,23 +291,32 @@ h1 {
 
 .qr-container {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-end;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 20px;
     margin-top: 16px;
     padding: 16px;
     background: #fff;
     border: 1px solid #adb5bd;
 }
 
-.qr-principal,
-.qr-ubicacion-bloque {
+.qr-principal {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+}
+
+.pase-pie {
+    margin-top: 16px;
+    padding: 16px 12px 8px;
+    border-top: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.pase-pie #qrUbicacion {
+    display: inline-block;
+    margin-top: 4px;
 }
 
 .qr-leyenda {
@@ -322,8 +330,9 @@ h1 {
 
 #qrUbicacion img,
 #qrUbicacion canvas {
-    width: 88px !important;
-    height: 88px !important;
+    display: block;
+    width: 128px !important;
+    height: 128px !important;
 }
 
 /* El QR ocupa el ancho disponible (con tope para escritorio) */
