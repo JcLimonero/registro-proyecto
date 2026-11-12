@@ -553,7 +553,8 @@ function renderPaginacion($vista, array $pag) {
     if ($pag['total'] === 0) {
         return;
     }
-    $base = 'registros.php?vista=' . rawurlencode($vista);
+    $extraQ = !empty($pag['q']) ? '&q=' . rawurlencode((string) $pag['q']) : '';
+    $base = 'registros.php?vista=' . rawurlencode($vista) . $extraQ;
     ?>
     <nav class="paginacion" aria-label="Páginas">
         <?php if ($pag['pagina'] > 1): ?>
@@ -638,25 +639,51 @@ function renderDialogoCatalogo($csrf, $pagina) {
     <?php
 }
 
-/** Tabla de agencias o áreas: alta arriba, editar y eliminar en cada fila. */
+/** Barra superior de catálogos (como filtros en Registros): buscar + icono agregar. */
+function renderBarraCatalogo($vista, array $pag, $tipo, $singular, $accionGuardar, $tituloNuevo, $maxNombre = 150) {
+    $q = (string) ($pag['q'] ?? '');
+    $params = ['vista' => $vista];
+    if ($q !== '') {
+        $params['q'] = $q;
+    }
+    $accionVista = 'registros.php?' . http_build_query($params);
+    if ((int) $pag['pagina'] > 1) {
+        $accionVista .= '&p=' . (int) $pag['pagina'];
+    }
+    ?>
+    <form class="filtros" method="get" action="registros.php" aria-label="Filtros de <?= h($vista) ?>">
+        <input type="hidden" name="vista" value="<?= h($vista) ?>">
+        <div class="filtro filtro-buscar">
+            <label class="etiqueta sec" for="flt-cat-q">Buscar</label>
+            <input type="search" id="flt-cat-q" name="q" value="<?= h($q) ?>" maxlength="100" placeholder="Nombre…" autocomplete="off">
+        </div>
+        <div class="filtro-botones">
+            <button type="submit" class="btn-primario">Filtrar</button>
+            <?php if ($q !== ''): ?>
+                <a class="btn btn-sec" href="registros.php?vista=<?= h(rawurlencode($vista)) ?>">Limpiar</a>
+            <?php endif; ?>
+            <button type="button" class="btn-primario btn-icono js-nuevo-catalogo" title="<?= h($tituloNuevo) ?>" aria-label="<?= h($tituloNuevo) ?>"
+                    data-tipo="<?= h($tipo) ?>"
+                    data-accion-valor="<?= h($accionGuardar) ?>"
+                    data-action="<?= h($accionVista) ?>"
+                    data-p="<?= (int) $pag['pagina'] ?>"
+                    data-max="<?= (int) $maxNombre ?>"
+                    data-titulo-nuevo="<?= h($tituloNuevo) ?>"><?= icono('agregar') ?></button>
+        </div>
+    </form>
+    <?php
+}
+
+/** Tabla de agencias o áreas: filtros arriba, tabla abajo, alta/edición en diálogo. */
 function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
     list(, $singular, $plural, $vista, $max) = CATALOGOS[$tipo];
-    $accionVista = 'registros.php?vista=' . rawurlencode($vista) . '&p=' . (int) $pag['pagina'];
+    $accionVista = 'registros.php?vista=' . rawurlencode($vista);
+    if (($pag['q'] ?? '') !== '') {
+        $accionVista .= '&q=' . rawurlencode($pag['q']);
+    }
+    $accionVista .= '&p=' . (int) $pag['pagina'];
+    renderBarraCatalogo($vista, $pag, $tipo, $singular, 'guardar_' . $tipo, 'Nueva ' . $singular, (int) $max);
     ?>
-    <section class="tarjeta cat-alta listado-toolbar" aria-label="Nueva <?= h($singular) ?>">
-        <h2>Nueva <?= h($singular) ?></h2>
-        <form method="post" action="registros.php?vista=<?= h($vista) ?>" class="cat-alta-form">
-            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-            <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-<?= h($tipo) ?>">Nombre</label>
-                <input type="text" id="nuevo-<?= h($tipo) ?>" name="nombre" maxlength="<?= (int) $max ?>" required>
-            </div>
-            <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_<?= h($tipo) ?>" aria-label="Agregar" title="Agregar"><?= icono('agregar') ?></button>
-        </form>
-    </section>
-    <?php if (!$pag['total']): ?>
-        <div class="tarjeta vacio">Aún no hay <?= h($plural) ?>.</div>
-    <?php else: ?>
     <div class="tarjeta tabla-wrap">
         <table class="tabla-listado">
             <thead>
@@ -667,18 +694,31 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
                 </tr>
             </thead>
             <tbody>
+            <?php if (!$pag['total']): ?>
+                <tr>
+                    <td colspan="3" class="vacio-celda">
+                        <?php if (($pag['q'] ?? '') !== ''): ?>
+                            Ninguna <?= h($singular) ?> coincide con la búsqueda.
+                        <?php else: ?>
+                            Aún no hay <?= h($plural) ?>. Usa el botón + para agregar.
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endif; ?>
             <?php foreach ($filas as $f): $i = (int) $f['id']; ?>
                 <tr>
                     <td class="cat-nombre-celda texto" data-label="Nombre"><?= h($f['nombre']) ?></td>
                     <td class="cat-usos" data-label="Registros"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones acciones-celda" data-label="Acciones">
-                        <button type="button" class="btn-sec btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
+                        <div class="fila-acciones">
+                        <button type="button" class="btn-fila js-editar-catalogo" title="Editar" aria-label="Editar"
                                 data-tipo="<?= h($tipo) ?>"
                                 data-accion-valor="guardar_<?= h($tipo) ?>"
                                 data-action="<?= h($accionVista) ?>"
                                 data-id="<?= $i ?>"
                                 data-p="<?= (int) $pag['pagina'] ?>"
-                                data-nombre="<?= h($f['nombre']) ?>"><?= icono('editar') ?></button>
+                                data-max="<?= (int) $max ?>"
+                                data-nombre="<?= h($f['nombre']) ?>">Editar</button>
                         <form method="post" action="<?= h($accionVista) ?>" class="cat-eliminar-form">
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                             <input type="hidden" name="id" value="<?= $i ?>">
@@ -687,64 +727,29 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
                                     aria-label="Eliminar" title="Eliminar"
                                     onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);"><?= icono('eliminar') ?></button>
                         </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
-        <?php renderPaginacion($vista, $pag); ?>
+        <?php if ($pag['total'] > 0) {
+            renderPaginacion($vista, $pag);
+        } ?>
     </div>
-    <?php endif;
+    <?php
 }
 
-/** Tabla de eventos: alta arriba, editar y eliminar en cada fila. */
+/** Tabla de eventos: filtros arriba, tabla abajo, alta/edición en diálogo. */
 function renderEventos(array $filas, $csrf, $ahora, array $pag) {
     $etiquetas = ['vigente' => 'Vigente', 'proximo' => 'Próximo', 'finalizado' => 'Finalizado'];
-    $accionVista = 'registros.php?vista=eventos&p=' . (int) $pag['pagina'];
+    $accionVista = 'registros.php?vista=eventos';
+    if (($pag['q'] ?? '') !== '') {
+        $accionVista .= '&q=' . rawurlencode($pag['q']);
+    }
+    $accionVista .= '&p=' . (int) $pag['pagina'];
+    renderBarraCatalogo('eventos', $pag, 'evento', 'evento', 'guardar_evento', 'Nuevo evento', EVENTO_NOMBRE_MAX);
     ?>
-    <section class="tarjeta cat-alta listado-toolbar" aria-label="Nuevo evento">
-        <h2>Nuevo evento</h2>
-        <form method="post" action="registros.php?vista=eventos" enctype="multipart/form-data" class="cat-alta-form cat-alta-evento">
-            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-            <div class="cat-campo cat-nombre">
-                <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
-                <input type="text" id="nuevo-evento" name="nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required>
-            </div>
-            <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-inicio">Inicio del evento</label>
-                <input type="datetime-local" id="nuevo-inicio" name="fecha_inicio" required>
-            </div>
-            <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-fin">Fin del evento</label>
-                <input type="datetime-local" id="nuevo-fin" name="fecha_fin" required>
-            </div>
-            <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-reg-ini">Registro desde</label>
-                <input type="datetime-local" id="nuevo-reg-ini" name="registro_inicio" required>
-            </div>
-            <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-reg-fin">Registro hasta</label>
-                <input type="datetime-local" id="nuevo-reg-fin" name="registro_fin" required>
-            </div>
-            <div class="cat-campo cat-ubicacion">
-                <label class="etiqueta sec" for="nuevo-ubicacion">Ubicación</label>
-                <input type="url" id="nuevo-ubicacion" name="ubicacion" maxlength="500" placeholder="https://maps.app.goo.gl/…" inputmode="url">
-            </div>
-            <div class="cat-campo">
-                <label class="etiqueta sec" for="nuevo-cartel">Cartel (JPG, PNG o WebP)</label>
-                <input type="file" id="nuevo-cartel" name="cartel" accept="image/jpeg,image/png,image/webp">
-            </div>
-            <div class="cat-campo cat-principal-check">
-                <label class="etiqueta sec cat-check">
-                    <input type="checkbox" name="es_principal" value="1"> Evento principal (cartel por defecto en el registro)
-                </label>
-            </div>
-            <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" aria-label="Agregar" title="Agregar"><?= icono('agregar') ?></button>
-        </form>
-    </section>
-    <?php if (!$pag['total']): ?>
-        <div class="tarjeta vacio">Aún no hay eventos. Sin un periodo de registro abierto, el registro público permanece cerrado.</div>
-    <?php else: ?>
     <div class="tarjeta tabla-wrap">
         <table class="tabla-listado cat-eventos">
             <thead>
@@ -761,6 +766,17 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 </tr>
             </thead>
             <tbody>
+            <?php if (!$pag['total']): ?>
+                <tr>
+                    <td colspan="9" class="vacio-celda">
+                        <?php if (($pag['q'] ?? '') !== ''): ?>
+                            Ningún evento coincide con la búsqueda.
+                        <?php else: ?>
+                            Aún no hay eventos. Usa el botón + para crear uno y abrir el registro público.
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endif; ?>
             <?php foreach ($filas as $f):
                 $estado = estadoEvento($f, $ahora);
                 $i = (int) $f['id'];
@@ -793,13 +809,14 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     </td>
                     <td class="cat-usos" data-label="Registros"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones acciones-celda" data-label="Acciones">
-                        <button type="button" class="btn-sec btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
+                        <div class="fila-acciones">
+                        <button type="button" class="btn-fila js-editar-catalogo" title="Editar" aria-label="Editar"
                                 data-tipo="evento"
                                 data-accion-valor="guardar_evento"
                                 data-action="<?= h($accionVista) ?>"
                                 data-id="<?= $i ?>"
                                 data-p="<?= (int) $pag['pagina'] ?>"
-                                data-evento="<?= h(json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>"><?= icono('editar') ?></button>
+                                data-evento="<?= h(json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>">Editar</button>
                         <form method="post" action="<?= h($accionVista) ?>" class="cat-eliminar-form">
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                             <input type="hidden" name="id" value="<?= $i ?>">
@@ -808,14 +825,17 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                                     aria-label="Eliminar" title="Eliminar"
                                     onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);"><?= icono('eliminar') ?></button>
                         </form>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
-        <?php renderPaginacion('eventos', $pag); ?>
+        <?php if ($pag['total'] > 0) {
+            renderPaginacion('eventos', $pag);
+        } ?>
     </div>
-    <?php endif;
+    <?php
 }
 
 if (defined('REGISTROS_SOLO_FUNCIONES')) {
@@ -1033,7 +1053,14 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
                         (SELECT COUNT(*) FROM registros r WHERE r.area = a.nombre) AS usos
                     FROM areas a ORDER BY a.nombre')->fetchAll(PDO::FETCH_ASSOC);
             }
+            $filtroCatalogoQ = textoFiltro($_GET['q'] ?? '', 100);
+            if ($filtroCatalogoQ !== '') {
+                $filas = array_values(array_filter($filas, function ($f) use ($filtroCatalogoQ) {
+                    return stripos((string) ($f['nombre'] ?? ''), $filtroCatalogoQ) !== false;
+                }));
+            }
             $pagCatalogo = paginarCatalogo($filas);
+            $pagCatalogo['q'] = $filtroCatalogoQ;
             $filas = $pagCatalogo['filas'];
         } catch (PDOException $e) {
             error_log('registros.php: ' . $e->getMessage());
@@ -1486,6 +1513,9 @@ if ($autenticado && $vista === 'tabla') {
         .tabla-listado .cat-cartel-mini { display: inline-block; vertical-align: middle; object-fit: cover; border-radius: 4px; background: #eef0f3; }
         .paginacion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #eef0f3; background: #fff; }
         .tabla-wrap .paginacion { border-radius: 0 0 12px 12px; }
+        .vacio-celda { text-align: center; color: #6c757d; padding: 32px 16px !important; }
+        .vacio-celda::before { display: none !important; }
+        .filtro-botones .btn-icono { width: 40px; min-width: 40px; flex: none; }
         .pag-info { font-size: 13px; color: #212529; }
         .pag-off { opacity: 0.4; pointer-events: none; }
         @media (min-width: 768px) {

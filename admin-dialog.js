@@ -6,6 +6,8 @@
         const dlgEvento = formCat.querySelector('.dlg-evento');
         const dlgTitulo = document.getElementById('dialogCatalogoTitulo');
         const dlgCartelPrev = document.getElementById('dlg-cartel-prev');
+        const dlgSubmit = document.getElementById('dlg-submit');
+        const dlgId = document.getElementById('dlg-id');
 
         function cerrarCatalogo() {
             if (dialogCat.open) {
@@ -69,28 +71,68 @@
             });
         }
 
-        toggleDlgCampos('simple');
-
-        document.querySelectorAll('.js-editar-catalogo').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                const tipo = btn.dataset.tipo;
-                formCat.action = btn.dataset.action || formCat.action;
-                setVal('dlg-id', btn.dataset.id);
-                setVal('dlg-p', btn.dataset.p);
-                const submit = document.getElementById('dlg-submit');
-                if (submit) {
-                    submit.value = btn.dataset.accionValor || 'guardar_agencia';
+        function limpiarFormularioCatalogo(esEvento) {
+            if (esEvento) {
+                ['dlg-ev-nombre', 'dlg-ev-fecha-inicio', 'dlg-ev-fecha-fin', 'dlg-ev-reg-inicio', 'dlg-ev-reg-fin', 'dlg-ev-ubicacion'].forEach(function (id) {
+                    setVal(id, '');
+                });
+                const chk = document.getElementById('dlg-ev-principal');
+                if (chk) {
+                    chk.checked = false;
                 }
+                const file = document.getElementById('dlg-ev-cartel');
+                if (file) {
+                    file.value = '';
+                }
+                if (dlgCartelPrev) {
+                    dlgCartelPrev.removeAttribute('src');
+                    dlgCartelPrev.hidden = true;
+                }
+            } else {
+                setVal('dlg-nombre', '');
+            }
+        }
 
-                if (tipo === 'evento') {
+        function abrirDialogo(btn, esNuevo) {
+            const tipo = btn.dataset.tipo;
+            formCat.action = btn.dataset.action || formCat.action;
+            setVal('dlg-p', btn.dataset.p);
+            if (dlgId) {
+                dlgId.value = esNuevo ? '' : (btn.dataset.id || '');
+                dlgId.name = esNuevo ? '' : 'id';
+                if (esNuevo) {
+                    dlgId.removeAttribute('name');
+                } else {
+                    dlgId.setAttribute('name', 'id');
+                }
+            }
+            if (dlgSubmit) {
+                dlgSubmit.value = btn.dataset.accionValor || 'guardar_agencia';
+                dlgSubmit.textContent = esNuevo ? 'Agregar' : 'Guardar';
+            }
+
+            const max = parseInt(btn.dataset.max, 10);
+            const nombreInput = document.getElementById('dlg-nombre');
+            if (nombreInput && max > 0) {
+                nombreInput.maxLength = max;
+            }
+            const evNombre = document.getElementById('dlg-ev-nombre');
+            if (evNombre && max > 0 && tipo === 'evento') {
+                evNombre.maxLength = max;
+            }
+
+            if (tipo === 'evento') {
+                toggleDlgCampos('evento');
+                dlgTitulo.textContent = esNuevo ? (btn.dataset.tituloNuevo || 'Nuevo evento') : 'Editar evento';
+                if (esNuevo) {
+                    limpiarFormularioCatalogo(true);
+                } else {
                     let data;
                     try {
                         data = JSON.parse(btn.dataset.evento || '{}');
                     } catch (_e) {
                         return;
                     }
-                    toggleDlgCampos('evento');
-                    dlgTitulo.textContent = 'Editar evento';
                     setVal('dlg-ev-nombre', data.nombre);
                     setVal('dlg-ev-fecha-inicio', data.fecha_inicio);
                     setVal('dlg-ev-fecha-fin', data.fecha_fin);
@@ -114,13 +156,33 @@
                             dlgCartelPrev.hidden = true;
                         }
                     }
+                }
+            } else {
+                toggleDlgCampos('simple');
+                dlgTitulo.textContent = esNuevo
+                    ? (btn.dataset.tituloNuevo || 'Nuevo')
+                    : (tipo === 'agencia' ? 'Editar agencia' : 'Editar área');
+                if (esNuevo) {
+                    limpiarFormularioCatalogo(false);
                 } else {
-                    toggleDlgCampos('simple');
-                    dlgTitulo.textContent = tipo === 'agencia' ? 'Editar agencia' : 'Editar área';
                     setVal('dlg-nombre', btn.dataset.nombre);
                 }
+            }
 
-                dialogCat.showModal();
+            dialogCat.showModal();
+        }
+
+        toggleDlgCampos('simple');
+
+        document.querySelectorAll('.js-editar-catalogo').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                abrirDialogo(btn, false);
+            });
+        });
+
+        document.querySelectorAll('.js-nuevo-catalogo').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                abrirDialogo(btn, true);
             });
         });
     }
