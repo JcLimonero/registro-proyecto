@@ -643,7 +643,7 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
     list(, $singular, $plural, $vista, $max) = CATALOGOS[$tipo];
     $accionVista = 'registros.php?vista=' . rawurlencode($vista) . '&p=' . (int) $pag['pagina'];
     ?>
-    <section class="tarjeta cat-alta">
+    <section class="tarjeta cat-alta listado-toolbar" aria-label="Nueva <?= h($singular) ?>">
         <h2>Nueva <?= h($singular) ?></h2>
         <form method="post" action="registros.php?vista=<?= h($vista) ?>" class="cat-alta-form">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
@@ -657,8 +657,8 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
     <?php if (!$pag['total']): ?>
         <div class="tarjeta vacio">Aún no hay <?= h($plural) ?>.</div>
     <?php else: ?>
-    <div class="tarjeta tabla-wrap cat-tabla-wrap">
-        <table class="cat-tabla">
+    <div class="tarjeta tabla-wrap">
+        <table class="tabla-listado">
             <thead>
                 <tr>
                     <th>Nombre</th>
@@ -669,9 +669,9 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
             <tbody>
             <?php foreach ($filas as $f): $i = (int) $f['id']; ?>
                 <tr>
-                    <td class="cat-nombre-celda"><?= h($f['nombre']) ?></td>
-                    <td class="cat-usos"><?= (int) $f['usos'] ?></td>
-                    <td class="cat-acciones">
+                    <td class="cat-nombre-celda texto" data-label="Nombre"><?= h($f['nombre']) ?></td>
+                    <td class="cat-usos" data-label="Registros"><?= (int) $f['usos'] ?></td>
+                    <td class="cat-acciones acciones-celda" data-label="Acciones">
                         <button type="button" class="btn-sec btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
                                 data-tipo="<?= h($tipo) ?>"
                                 data-accion-valor="guardar_<?= h($tipo) ?>"
@@ -702,7 +702,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
     $etiquetas = ['vigente' => 'Vigente', 'proximo' => 'Próximo', 'finalizado' => 'Finalizado'];
     $accionVista = 'registros.php?vista=eventos&p=' . (int) $pag['pagina'];
     ?>
-    <section class="tarjeta cat-alta">
+    <section class="tarjeta cat-alta listado-toolbar" aria-label="Nuevo evento">
         <h2>Nuevo evento</h2>
         <form method="post" action="registros.php?vista=eventos" enctype="multipart/form-data" class="cat-alta-form cat-alta-evento">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
@@ -745,8 +745,8 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
     <?php if (!$pag['total']): ?>
         <div class="tarjeta vacio">Aún no hay eventos. Sin un periodo de registro abierto, el registro público permanece cerrado.</div>
     <?php else: ?>
-    <div class="tarjeta tabla-wrap cat-tabla-wrap">
-        <table class="cat-tabla cat-eventos">
+    <div class="tarjeta tabla-wrap">
+        <table class="tabla-listado cat-eventos">
             <thead>
                 <tr>
                     <th>Nombre</th>
@@ -779,18 +779,20 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 $ubicacion = trim((string) ($f['ubicacion'] ?? ''));
             ?>
                 <tr>
-                    <td class="cat-nombre-celda"><?= h($f['nombre']) ?></td>
-                    <td class="cat-fechas"><?= h(fechaLegible($f['fecha_inicio'])) ?> — <?= h(fechaLegible($f['fecha_fin'])) ?></td>
-                    <td class="cat-fechas"><?= h(fechaLegible($f['registro_inicio'] ?? '')) ?> — <?= h(fechaLegible($f['registro_fin'] ?? '')) ?></td>
-                    <td class="cat-ubicacion-celda"><?= $ubicacion !== '' ? '<a href="' . h($ubicacion) . '" target="_blank" rel="noopener">' . h(mb_strlen($ubicacion) > 48 ? mb_substr($ubicacion, 0, 45, 'UTF-8') . '…' : $ubicacion) . '</a>' : '<span class="sec">—</span>' ?></td>
-                    <td class="cat-cartel"><?php if ($cartelPub !== ''): ?><img src="<?= h($cartelPub) ?>" alt="" class="cat-cartel-mini" width="52" height="66"><?php else: ?><span class="sec">Sin cartel</span><?php endif; ?></td>
-                    <td><?= !empty($f['es_principal']) ? '<span class="pastilla vigente">Sí</span>' : '<span class="sec">No</span>' ?></td>
-                    <td>
+                    <td class="cat-nombre-celda texto" data-label="Nombre"><?= h($f['nombre']) ?></td>
+                    <td class="cat-fechas" data-label="Fechas del evento"><?= h(fechaLegible($f['fecha_inicio'])) ?> — <?= h(fechaLegible($f['fecha_fin'])) ?></td>
+                    <td class="cat-fechas" data-label="Periodo de registro"><?= h(fechaLegible($f['registro_inicio'] ?? '')) ?> — <?= h(fechaLegible($f['registro_fin'] ?? '')) ?></td>
+                    <td class="cat-ubicacion-celda texto" data-label="Ubicación"><?= $ubicacion !== '' ? '<a href="' . h($ubicacion) . '" target="_blank" rel="noopener">' . h(mb_strlen($ubicacion) > 48 ? mb_substr($ubicacion, 0, 45, 'UTF-8') . '…' : $ubicacion) . '</a>' : '<span class="sec">—</span>' ?></td>
+                    <td class="cat-cartel" data-label="Cartel"><?php if ($cartelPub !== ''): ?><img src="<?= h($cartelPub) ?>" alt="" class="cat-cartel-mini" width="52" height="66"><?php else: ?><span class="sec">Sin cartel</span><?php endif; ?></td>
+                    <td data-label="Principal"><?= !empty($f['es_principal']) ? '<span class="pastilla vigente">Sí</span>' : '<span class="sec">No</span>' ?></td>
+                    <td class="estado" data-label="Estado">
+                        <div class="estado-valor">
                         <span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span>
                         <span class="pastilla <?= $registroAbierto ? 'vigente' : 'finalizado' ?>"><?= $registroAbierto ? 'Registro abierto' : 'Registro cerrado' ?></span>
+                        </div>
                     </td>
-                    <td class="cat-usos"><?= (int) $f['usos'] ?></td>
-                    <td class="cat-acciones">
+                    <td class="cat-usos" data-label="Registros"><?= (int) $f['usos'] ?></td>
+                    <td class="cat-acciones acciones-celda" data-label="Acciones">
                         <button type="button" class="btn-sec btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
                                 data-tipo="evento"
                                 data-accion-valor="guardar_evento"
@@ -1187,18 +1189,22 @@ if ($autenticado && $vista === 'tabla') {
         .acciones form { margin: 0; }
         .acciones .btn, .acciones button { width: 100%; }
 
-        /* Tabla -> tarjetas apiladas en teléfono */
+        /* Listados admin: tarjetas apiladas en teléfono (solo .tabla-listado) */
         .tabla-wrap { background: transparent; box-shadow: none; border-radius: 0; }
-        table, thead, tbody, tr, td { display: block; width: 100%; }
-        thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-        tr {
+        .tabla-listado,
+        .tabla-listado thead,
+        .tabla-listado tbody,
+        .tabla-listado tr,
+        .tabla-listado td { display: block; width: 100%; }
+        .tabla-listado thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+        .tabla-listado tr {
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
             margin-bottom: 12px;
             padding: 8px 16px;
         }
-        td {
+        .tabla-listado td {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -1207,7 +1213,7 @@ if ($autenticado && $vista === 'tabla') {
             border-bottom: 1px solid #eef0f3;
             text-align: right;
         }
-        td::before {
+        .tabla-listado td::before {
             content: attr(data-label);
             flex: 0 0 38%;
             text-align: left;
@@ -1217,10 +1223,14 @@ if ($autenticado && $vista === 'tabla') {
             letter-spacing: 0.08em;
             color: #6c757d;
         }
-        td:last-child { border-bottom: 0; }
-        td.texto { overflow-wrap: anywhere; word-break: break-word; }
-        td.estado { align-items: center; }
-        td.estado .estado-valor { text-align: right; }
+        .tabla-listado td:last-child { border-bottom: 0; }
+        .tabla-listado td.texto { overflow-wrap: anywhere; word-break: break-word; }
+        .tabla-listado td.estado { align-items: center; }
+        .tabla-listado td.estado .estado-valor { text-align: right; }
+        .tabla-listado td.acciones-celda,
+        .tabla-listado td.cat-acciones { display: block; }
+        .tabla-listado td.acciones-celda::before,
+        .tabla-listado td.cat-acciones::before { display: none; }
         .vacio, .aviso { padding: 48px 16px; text-align: center; color: #6c757d; background: #fff; border-radius: 12px; }
 
         .pastilla {
@@ -1256,8 +1266,6 @@ if ($autenticado && $vista === 'tabla') {
         }
         .btn-fila:hover { background: #f4f5f7; }
         .btn-fila.eliminar { color: #b02a37; }
-        td.acciones-celda { display: block; }
-        td.acciones-celda::before { display: none; }
 
         .mensaje { padding: 14px 16px; margin-bottom: 16px; border-radius: 8px; font-size: 15px; background: #fff; border: 1px solid #adb5bd; }
         .mensaje.ok { border-left: 4px solid #1a1a1a; }
@@ -1287,7 +1295,8 @@ if ($autenticado && $vista === 'tabla') {
         .edicion form { margin: 0; }
 
         /* Filtros de la tabla: una columna en celular, en fila desde 768px */
-        .filtros {
+        .filtros,
+        .cat-alta.listado-toolbar {
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -1296,6 +1305,13 @@ if ($autenticado && $vista === 'tabla') {
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
             padding: 16px;
             margin-bottom: 16px;
+        }
+        .cat-alta.listado-toolbar h2 {
+            margin: 0 0 4px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: none;
+            letter-spacing: 0;
         }
         .filtro { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
         .filtro select, .filtro input {
@@ -1316,7 +1332,11 @@ if ($autenticado && $vista === 'tabla') {
 
         @media (min-width: 768px) {
             body { font-size: 14px; }
-            .filtros { flex-direction: row; flex-wrap: wrap; align-items: flex-end; padding: 16px 20px; margin-bottom: 20px; }
+            .filtros,
+            .cat-alta.listado-toolbar { flex-direction: row; flex-wrap: wrap; align-items: flex-end; padding: 16px 20px; margin-bottom: 20px; }
+            .listado-toolbar input[type=text],
+            .listado-toolbar input[type=url],
+            .listado-toolbar input[type=datetime-local] { height: 40px; padding: 0 12px; font-size: 14px; }
             .filtro { flex: 1 1 160px; }
             .filtro-buscar { flex: 2 1 240px; }
             .filtro select, .filtro input { height: 40px; padding: 0 12px; font-size: 14px; }
@@ -1333,11 +1353,11 @@ if ($autenticado && $vista === 'tabla') {
             .acciones .btn, .acciones button { width: auto; }
 
             .tabla-wrap { background: #fff; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); border-radius: 12px; overflow-x: auto; }
-            table { display: table; width: 100%; min-width: 0; border-collapse: collapse; }
-            thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
-            tbody { display: table-row-group; }
-            tr { display: table-row; background: transparent; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
-            th {
+            .tabla-listado { display: table; width: 100%; min-width: 0; border-collapse: collapse; }
+            .tabla-listado thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
+            .tabla-listado tbody { display: table-row-group; }
+            .tabla-listado tr { display: table-row; background: transparent; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
+            .tabla-listado th {
                 text-align: left;
                 font-size: 12px;
                 font-weight: 600;
@@ -1348,13 +1368,15 @@ if ($autenticado && $vista === 'tabla') {
                 border-bottom: 1px solid #adb5bd;
                 vertical-align: bottom;
             }
-            td { display: table-cell; width: auto; padding: 12px 16px; border-bottom: 1px solid #eef0f3; vertical-align: top; text-align: left; }
-            td::before { display: none; }
-            td:last-child { border-bottom: 1px solid #eef0f3; }
-            tr:last-child td { border-bottom: 0; }
-            td.fecha { white-space: nowrap; }
-            td.estado .estado-valor { text-align: left; }
-            td.acciones-celda { display: table-cell; }
+            .tabla-listado td { display: table-cell; width: auto; padding: 12px 16px; border-bottom: 1px solid #eef0f3; vertical-align: middle; text-align: left; }
+            .tabla-listado td::before { display: none; content: none; }
+            .tabla-listado td:last-child { border-bottom: 1px solid #eef0f3; }
+            .tabla-listado tr:last-child td { border-bottom: 0; }
+            .tabla-listado td.fecha,
+            .tabla-listado td.cat-fechas { white-space: nowrap; }
+            .tabla-listado td.estado .estado-valor { text-align: left; }
+            .tabla-listado td.acciones-celda,
+            .tabla-listado td.cat-acciones { display: table-cell; }
             .vacio, .aviso { background: transparent; border-radius: 0; }
             .pastilla, .fecha-entrada { font-size: 12px; }
             .fecha-entrada { white-space: nowrap; }
@@ -1435,38 +1457,35 @@ if ($autenticado && $vista === 'tabla') {
         .dialog-pie .btn-primario { flex: 1; min-width: 140px; }
         .dialog-errores { color: #b02a37; margin: 0 20px 12px; padding-left: 20px; }
         .dialog-ticket { margin: 0 20px 12px; }
-        /* Administración de agencias, áreas y eventos */
-        .catalogo { width: 100%; max-width: none; margin: 0; }
-        .cat-alta { padding: 16px; margin-bottom: 12px; }
-        .cat-alta h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
-        .cat-alta-form { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: end; }
+        /* Alta de catálogos (misma barra visual que filtros) */
+        .cat-alta-form { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: end; width: 100%; }
         .cat-campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .cat-campo label { margin: 0; }
-        .cat-tabla-wrap { padding: 0; overflow-x: auto; }
-        .catalogo table.cat-tabla { display: table; width: 100%; min-width: 640px; border-collapse: collapse; }
-        .catalogo table.cat-tabla thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
-        .catalogo table.cat-tabla tbody { display: table-row-group; }
-        .catalogo table.cat-tabla tr { display: table-row; background: transparent; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
-        .catalogo table.cat-tabla th,
-        .catalogo table.cat-tabla td { display: table-cell; width: auto; text-align: left; vertical-align: middle; padding: 10px 12px; border-bottom: 1px solid #eef0f3; }
-        .catalogo table.cat-tabla th {
-            font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #6c757d; border-bottom: 1px solid #adb5bd;
+        .listado-toolbar input[type=text],
+        .listado-toolbar input[type=url],
+        .listado-toolbar input[type=datetime-local],
+        .listado-toolbar input[type=file] {
+            width: 100%;
+            height: 52px;
+            border: 0;
+            background: #eef0f3;
+            padding: 0 14px;
+            font: inherit;
+            font-size: 16px;
+            color: #212529;
         }
-        .catalogo table.cat-tabla td::before { display: none; content: none; }
-        .catalogo .cat-fila { margin: 0; }
-        .catalogo input[type=text],
-        .catalogo input[type=url],
-        .catalogo input[type=datetime-local] {
-            width: 100%; min-width: 140px; height: 40px; border: 0; background: #eef0f3; padding: 0 10px;
-            font: inherit; font-size: 16px; color: #212529;
-        }
-        .catalogo .cat-usos { text-align: center; white-space: nowrap; }
-        .catalogo .cat-acciones { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
-        .catalogo .cat-eliminar-form { display: inline; margin: 0; }
-        .catalogo .cat-nombre-celda { font-weight: 600; }
-        .catalogo .cat-fechas { font-size: 13px; }
-        .catalogo .cat-ubicacion-celda a { color: #212529; word-break: break-all; }
-        .paginacion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px; }
+        .listado-toolbar input[type=file] { padding: 10px 14px; height: auto; }
+        .tabla-listado .cat-usos { text-align: center; white-space: nowrap; }
+        .tabla-listado .cat-acciones { white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+        .tabla-listado .cat-eliminar-form { display: inline; margin: 0; }
+        .tabla-listado .cat-nombre-celda { font-weight: 600; text-align: left; }
+        .tabla-listado .cat-fechas { font-size: 13px; }
+        .tabla-listado .cat-ubicacion-celda { text-align: left; }
+        .tabla-listado .cat-ubicacion-celda a { color: #212529; word-break: break-all; }
+        .tabla-listado.cat-eventos .pastilla { display: inline-block; margin: 2px 4px 2px 0; }
+        .tabla-listado .cat-cartel-mini { display: inline-block; vertical-align: middle; object-fit: cover; border-radius: 4px; background: #eef0f3; }
+        .paginacion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid #eef0f3; background: #fff; }
+        .tabla-wrap .paginacion { border-radius: 0 0 12px 12px; }
         .pag-info { font-size: 13px; color: #212529; }
         .pag-off { opacity: 0.4; pointer-events: none; }
         @media (min-width: 768px) {
@@ -1475,18 +1494,11 @@ if ($autenticado && $vista === 'tabla') {
             .cat-alta-evento .cat-nombre,
             .cat-alta-evento .cat-ubicacion,
             .cat-alta-evento .cat-principal-check { grid-column: 1 / -1; }
-            .catalogo table.cat-eventos { table-layout: auto; width: 100%; min-width: 0; }
-            .catalogo .cat-cartel-mini { display: block; object-fit: cover; border-radius: 4px; background: #eef0f3; }
+            .tabla-listado.cat-eventos { table-layout: auto; }
+            .tabla-listado.cat-eventos th { white-space: normal; line-height: 1.2; }
             .dlg-grid { grid-template-columns: 1fr 1fr; }
             .dialog-admin { width: min(760px, calc(100vw - 48px)); }
-            .catalogo .cat-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
-            .catalogo table.cat-eventos th,
-            .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
-            .catalogo table.cat-eventos th { white-space: normal; letter-spacing: 0.02em; line-height: 1.2; }
-            .catalogo table.cat-eventos input[type=datetime-local],
-            .catalogo table.cat-eventos input[type=url] { min-width: 0; font-size: 13px; padding: 0 6px; }
-            .catalogo table.cat-eventos .cat-acciones { white-space: nowrap; }
-            .catalogo table.cat-eventos .pastilla { display: inline-block; margin: 2px 4px 2px 0; }
+            .cat-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
         }
         .cat-bloque h2 { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
         .cat-form { margin: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -1555,6 +1567,8 @@ if ($autenticado && $vista === 'tabla') {
                 <div class="marca" role="img" aria-label="Grupo Vanguardia"></div>
             <?php if ($vista === 'tabla'): ?>
                 <h1>Registros <span class="sec" style="font-weight:400;font-size:14px;">(<?= count($filas) ?>)</span></h1>
+            <?php elseif (in_array($vista, ['agencias', 'areas', 'eventos'], true)): ?>
+                <h1><?= h(TITULOS_VISTA[$vista]) ?> <span class="sec" style="font-weight:400;font-size:14px;">(<?= (int) ($pagCatalogo['total'] ?? 0) ?>)</span></h1>
             <?php else: ?>
                 <h1><?= h(TITULOS_VISTA[$vista]) ?></h1>
             <?php endif; ?>
@@ -1646,7 +1660,6 @@ if ($autenticado && $vista === 'tabla') {
             </div>
         </div>
         <?php elseif ($vista === 'agencias' || $vista === 'areas' || $vista === 'eventos'): ?>
-        <div class="catalogo">
             <?php if ($errorDatos): ?>
                 <div class="tarjeta aviso" role="alert"><?= h($errorDatos) ?></div>
             <?php elseif ($vista === 'eventos'): ?>
@@ -1655,7 +1668,6 @@ if ($autenticado && $vista === 'tabla') {
                 <?php renderCatalogoSimple($vista === 'agencias' ? 'agencia' : 'area', $filas, $csrf, $pagCatalogo); ?>
             <?php endif; ?>
             <?php renderDialogoCatalogo($csrf, $pagCatalogo['pagina'] ?? 1); ?>
-        </div>
         <?php else: ?>
         <?php
             $qsFiltros = http_build_query(filtrosActivos($filtros));
@@ -1757,7 +1769,7 @@ if ($autenticado && $vista === 'tabla') {
         <?php elseif (!$filas): ?>
             <div class="vacio"><?= $filtrosActivosHay ? 'Ningún registro coincide con los filtros.' : 'Aún no hay registros.' ?></div>
         <?php else: ?>
-            <table>
+            <table class="tabla-listado tabla-registros">
                 <thead>
                     <tr>
                         <th>Estado</th>
