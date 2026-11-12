@@ -109,6 +109,7 @@ function icono($nombre) {
         'guardar'  => '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
         'eliminar' => '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
         'editar'   => '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+        'cerrar'   => '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     ];
     return '<svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ($trazos[$nombre] ?? '') . '</svg>';
 }
@@ -580,7 +581,7 @@ function renderDialogoCatalogo($csrf, $pagina) {
         <form method="post" id="formDialogCatalogo" enctype="multipart/form-data" class="dialog-form" action="registros.php">
             <header class="dialog-cabecera">
                 <h2 id="dialogCatalogoTitulo">Editar</h2>
-                <button type="button" class="btn-sec btn-icono dialog-cerrar" id="dialogCatalogoCerrar" aria-label="Cerrar"><?= icono('eliminar') ?></button>
+                <button type="button" class="btn-sec btn-icono dialog-cerrar" id="dialogCatalogoCerrar" aria-label="Cerrar" title="Cerrar"><?= icono('cerrar') ?></button>
             </header>
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
             <input type="hidden" name="id" id="dlg-id" value="">
@@ -711,14 +712,14 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
                     <td class="cat-usos" data-label="Registros"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones acciones-celda" data-label="Acciones">
                         <div class="fila-acciones">
-                        <button type="button" class="btn-fila js-editar-catalogo" title="Editar" aria-label="Editar"
+                        <button type="button" class="btn-fila btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
                                 data-tipo="<?= h($tipo) ?>"
                                 data-accion-valor="guardar_<?= h($tipo) ?>"
                                 data-action="<?= h($accionVista) ?>"
                                 data-id="<?= $i ?>"
                                 data-p="<?= (int) $pag['pagina'] ?>"
                                 data-max="<?= (int) $max ?>"
-                                data-nombre="<?= h($f['nombre']) ?>">Editar</button>
+                                data-nombre="<?= h($f['nombre']) ?>"><?= icono('editar') ?></button>
                         <form method="post" action="<?= h($accionVista) ?>" class="cat-eliminar-form">
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                             <input type="hidden" name="id" value="<?= $i ?>">
@@ -810,13 +811,13 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     <td class="cat-usos" data-label="Registros"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones acciones-celda" data-label="Acciones">
                         <div class="fila-acciones">
-                        <button type="button" class="btn-fila js-editar-catalogo" title="Editar" aria-label="Editar"
+                        <button type="button" class="btn-fila btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
                                 data-tipo="evento"
                                 data-accion-valor="guardar_evento"
                                 data-action="<?= h($accionVista) ?>"
                                 data-id="<?= $i ?>"
                                 data-p="<?= (int) $pag['pagina'] ?>"
-                                data-evento="<?= h(json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>">Editar</button>
+                                data-evento="<?= h(json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>"><?= icono('editar') ?></button>
                         <form method="post" action="<?= h($accionVista) ?>" class="cat-eliminar-form">
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                             <input type="hidden" name="id" value="<?= $i ?>">
@@ -1713,7 +1714,7 @@ if ($autenticado && $vista === 'tabla') {
             <form method="post" action="registros.php" class="dialog-form">
                 <header class="dialog-cabecera">
                     <h2>Editar registro</h2>
-                    <button type="button" class="btn-sec btn-icono dialog-cerrar" id="dialogRegistroCerrar" aria-label="Cerrar"><?= icono('eliminar') ?></button>
+                    <button type="button" class="btn-sec btn-icono dialog-cerrar" id="dialogRegistroCerrar" aria-label="Cerrar" title="Cerrar"><?= icono('cerrar') ?></button>
                 </header>
                 <?php if ($edicion): ?>
                 <p class="ticket sec dialog-ticket">ID Ticket: <strong><?= h($edicion['id_ticket']) ?></strong></p>
