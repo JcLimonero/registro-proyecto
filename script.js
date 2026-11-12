@@ -449,20 +449,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('confirmPuesto').textContent = datos.puesto;
         document.getElementById('confirmArea').textContent = datos.area;
         document.getElementById('confirmCorreo').textContent = datos.correo;
-        actualizarImagenPiePase(datos.pasePie || '');
+        actualizarCabeceraPase(datos.pasePie || '');
 
         formContainer.style.display = 'none';
         confirmationContainer.style.display = 'block';
         togglePaginaConfirmacion(true);
     }
 
-    function actualizarImagenPiePase(src) {
-        const bloque = document.getElementById('paseImagenPie');
-        const img = document.getElementById('pasePieImg');
-        if (!bloque || !img) {
+    function actualizarCabeceraPase(src) {
+        const logo = document.getElementById('paseLogoDefault');
+        const img = document.getElementById('paseCabeceraImg');
+        const url = (src || '').trim();
+        if (!img || !logo) {
             return;
         }
-        const url = (src || '').trim();
         if (url) {
             if (/\/backend\//.test(url)) {
                 img.crossOrigin = 'anonymous';
@@ -470,13 +470,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 img.removeAttribute('crossorigin');
             }
             img.src = url;
-            img.alt = 'Información del evento';
-            bloque.hidden = false;
+            img.alt = 'Encabezado del evento';
+            img.hidden = false;
+            logo.hidden = true;
         } else {
             img.removeAttribute('src');
             img.removeAttribute('crossorigin');
             img.alt = '';
-            bloque.hidden = true;
+            img.hidden = true;
+            logo.hidden = false;
         }
     }
 
@@ -588,8 +590,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     return !!(node.closest && node.closest('[hidden]'));
                 }
             };
-            const pie = document.getElementById('pasePieImg');
-            const pieSrc = pie && (pie.getAttribute('src') || '').trim();
+            const pie = document.getElementById('paseCabeceraImg');
+            const pieSrc = pie && !pie.hidden && (pie.getAttribute('src') || '').trim();
             const necesitaCors = pieSrc !== '' && /\/backend\//.test(pieSrc);
             return html2canvas(pase, Object.assign({}, opcionesBase, necesitaCors
                 ? { useCORS: true, allowTaint: false }
@@ -628,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (filaQrUbi) {
             filaQrUbi.hidden = true;
         }
-        actualizarImagenPiePase('');
+        actualizarCabeceraPase('');
         cargarCatalogos();
     });
 });

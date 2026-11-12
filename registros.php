@@ -656,9 +656,9 @@ function renderDialogoCatalogo($csrf, $pagina) {
                             <img id="dlg-cartel-prev" class="dlg-cartel-prev" alt="" hidden>
                         </div>
                         <div class="dlg-ancho">
-                            <label class="etiqueta sec" for="dlg-ev-pase-pie">Imagen inferior del pase QR (opcional)</label>
+                            <label class="etiqueta sec" for="dlg-ev-pase-pie">Imagen superior del pase QR (opcional)</label>
                             <input type="file" name="pase_pie" id="dlg-ev-pase-pie" accept="image/jpeg,image/png,image/webp">
-                            <p class="dlg-ayuda sec">Aparece al pie del PNG al descargar el QR (mapa, indicaciones, etc.).</p>
+                            <p class="dlg-ayuda sec">Reemplaza el logo de Grupo Vanguardia en el pase y en el PNG descargado.</p>
                             <img id="dlg-pase-pie-prev" class="dlg-cartel-prev" alt="" hidden>
                         </div>
                         <div class="dlg-ancho">

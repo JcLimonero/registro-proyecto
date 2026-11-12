@@ -298,11 +298,25 @@ h1 {
     border: 1px solid #adb5bd;
 }
 
+.pase-cabecera {
+    margin: 0 auto 12px;
+    text-align: center;
+}
+
 .pase-logo {
     display: block;
     width: 168px;
     height: auto;
-    margin: 0 auto 12px;
+    margin: 0 auto;
+}
+
+.pase-cabecera-evento {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    object-fit: contain;
 }
 
 .pase-ubicacion-enlace {
@@ -372,22 +386,6 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-}
-
-.pase-imagen-pie {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid #dee2e6;
-    text-align: center;
-}
-
-.pase-imagen-pie img {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    margin: 0 auto;
-    object-fit: contain;
 }
 
 .qr-leyenda {

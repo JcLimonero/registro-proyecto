@@ -103,7 +103,10 @@
                 <a id="confirmUbicacion" target="_blank" rel="noopener">Abrir ubicación en Google Maps</a>
             </p>
             <div class="confirmation-card" id="pase">
-                <img class="pase-logo" src="assets/grupo-vanguardia-logo.png" width="168" height="40" alt="Grupo Vanguardia" decoding="async">
+                <div class="pase-cabecera" id="paseCabecera">
+                    <img class="pase-logo" id="paseLogoDefault" src="assets/grupo-vanguardia-logo.png" width="168" height="40" alt="Grupo Vanguardia" decoding="async">
+                    <img class="pase-cabecera-evento" id="paseCabeceraImg" alt="" decoding="async" hidden>
+                </div>
                 <h2 class="pase-evento" id="confirmEvento"></h2>
                 <p class="pase-fechas"><span id="confirmInicio"></span> — <span id="confirmFin"></span></p>
                 <div class="ticket-info">
@@ -126,9 +129,6 @@
                         <p class="qr-leyenda">Ubicación</p>
                         <div id="qrUbicacion"></div>
                     </div>
-                </div>
-                <div class="pase-imagen-pie" id="paseImagenPie" hidden>
-                    <img id="pasePieImg" alt="" decoding="async">
                 </div>
             </div>
             <button id="descargarQR" class="btn-download">Descargar QR</button>
