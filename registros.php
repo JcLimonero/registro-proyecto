@@ -392,18 +392,23 @@ function aplicarExtrasEvento(PDO $conn, array $post, array $files, $eventoId) {
         ->execute([':p' => $marcarPrincipal ? 1 : 0, ':id' => $eventoId]);
 
     $archivo = $files['cartel'] ?? [];
-    list($rel, $err) = guardarCartelEventoArchivo($archivo, $eventoId);
+    list($rel, $err, $mime, $datos) = guardarCartelEventoArchivo($archivo, $eventoId);
     if ($err !== null) {
         volverConMensaje('error', $err, 'eventos');
     }
-    if ($rel !== null) {
+    if ($rel !== null && $datos !== null) {
         $prevStmt = $conn->prepare('SELECT cartel FROM eventos WHERE id = :id');
         $prevStmt->execute([':id' => $eventoId]);
         $prevCartel = $prevStmt->fetchColumn();
         if ($prevCartel && $prevCartel !== $rel) {
             eliminarCartelEventoArchivo($prevCartel);
         }
-        $conn->prepare('UPDATE eventos SET cartel = :c WHERE id = :id')->execute([':c' => $rel, ':id' => $eventoId]);
+        $stmt = $conn->prepare('UPDATE eventos SET cartel = :c, cartel_mime = :m, cartel_datos = :d WHERE id = :id');
+        $stmt->bindValue(':c', $rel, PDO::PARAM_STR);
+        $stmt->bindValue(':m', $mime, PDO::PARAM_STR);
+        $stmt->bindValue(':d', $datos, PDO::PARAM_LOB);
+        $stmt->bindValue(':id', $eventoId, PDO::PARAM_INT);
+        $stmt->execute();
     }
 }
 
@@ -786,7 +791,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 $estado = estadoEvento($f, $ahora);
                 $i = (int) $f['id'];
                 $registroAbierto = ($f['registro_inicio'] ?? '') <= $ahora && ($f['registro_fin'] ?? '') >= $ahora;
-                $cartelPub = cartelEventoPublico($f['cartel'] ?? '');
+                $cartelPub = cartelUrlEvento($f);
                 $payload = [
                     'nombre' => $f['nombre'],
                     'fecha_inicio' => fechaDbALocal($f['fecha_inicio']),

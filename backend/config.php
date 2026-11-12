@@ -132,6 +132,8 @@ function createTable() {
                 'registro_inicio' => 'DATETIME NULL',
                 'registro_fin'    => 'DATETIME NULL',
                 'cartel'         => 'VARCHAR(255) NULL',
+                'cartel_mime'    => 'VARCHAR(64) NULL',
+                'cartel_datos'   => 'MEDIUMBLOB NULL',
                 'es_principal'   => 'TINYINT(1) NOT NULL DEFAULT 0',
             ] as $columna => $definicion) {
                 $stmtCol = $conn->prepare(

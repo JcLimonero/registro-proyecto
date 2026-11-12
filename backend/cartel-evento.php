@@ -1,6 +1,6 @@
 <?php
 /**
- * Carteles por evento: rutas públicas, subida y borrado de archivos en assets/carteles/.
+ * Carteles por evento: archivo en assets/carteles/ y copia en MySQL para persistencia.
  */
 
 const CARTEL_EVENTO_REL = 'assets/carteles';
@@ -19,7 +19,7 @@ function asegurarDirectorioCarteles() {
     return is_dir($dir) && is_writable($dir);
 }
 
-/** Ruta relativa segura si el archivo existe; si no, cadena vacía. */
+/** Ruta relativa segura si el archivo existe en disco; si no, cadena vacía. */
 function cartelEventoPublico($ruta) {
     $ruta = trim((string) $ruta);
     if ($ruta === '' || !preg_match('#^assets/carteles/[a-zA-Z0-9._-]+$#', $ruta)) {
@@ -27,6 +27,19 @@ function cartelEventoPublico($ruta) {
     }
     $abs = dirname(__DIR__) . '/' . $ruta;
     return is_readable($abs) ? $ruta : '';
+}
+
+/** URL pública del cartel: archivo local o endpoint con copia en base. */
+function cartelUrlEvento(array $e) {
+    $id = (int) ($e['id'] ?? 0);
+    $ruta = trim((string) ($e['cartel'] ?? ''));
+    if ($ruta !== '' && cartelEventoPublico($ruta) !== '') {
+        return $ruta;
+    }
+    if ($id > 0 && $ruta !== '') {
+        return 'backend/cartel-evento-imagen.php?id=' . $id;
+    }
+    return '';
 }
 
 function eliminarCartelEventoArchivo($ruta) {
@@ -40,49 +53,70 @@ function eliminarCartelEventoArchivo($ruta) {
     }
 }
 
+function restaurarCartelEventoEnDisco($eventoId, $ruta, $datos, $mime) {
+    $ruta = trim((string) $ruta);
+    if ($ruta === '' || !preg_match('#^assets/carteles/[a-zA-Z0-9._-]+$#', $ruta)) {
+        return;
+    }
+    $abs = dirname(__DIR__) . '/' . $ruta;
+    if (is_readable($abs)) {
+        return;
+    }
+    if (!asegurarDirectorioCarteles()) {
+        return;
+    }
+    @file_put_contents($abs, $datos);
+    @chmod($abs, 0644);
+}
+
 /**
- * Guarda la subida del admin. Devuelve [ruta relativa|null, mensaje error|null].
+ * Guarda la subida del admin. Devuelve [ruta|null, error|null, mime|null, binario|null].
  */
 function guardarCartelEventoArchivo(array $archivo, $eventoId) {
     $eventoId = (int) $eventoId;
     if ($eventoId < 1) {
-        return [null, 'Evento no válido.'];
+        return [null, 'Evento no válido.', null, null];
     }
     if (!isset($archivo['error']) || $archivo['error'] === UPLOAD_ERR_NO_FILE) {
-        return [null, null];
+        return [null, null, null, null];
     }
     if ($archivo['error'] !== UPLOAD_ERR_OK) {
-        return [null, 'No se pudo subir la imagen del cartel.'];
+        return [null, 'No se pudo subir la imagen del cartel.', null, null];
     }
     if (($archivo['size'] ?? 0) > CARTEL_EVENTO_MAX_BYTES) {
-        return [null, 'El cartel no debe pasar de 3 MB.'];
-    }
-    if (!asegurarDirectorioCarteles()) {
-        return [null, 'No se puede escribir en la carpeta de carteles del servidor.'];
+        return [null, 'El cartel no debe pasar de 3 MB.', null, null];
     }
 
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $mime = $finfo->file($archivo['tmp_name']);
     $tipos = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     if (!isset($tipos[$mime])) {
-        return [null, 'Usa JPG, PNG o WebP para el cartel.'];
+        return [null, 'Usa JPG, PNG o WebP para el cartel.', null, null];
+    }
+
+    $datos = file_get_contents($archivo['tmp_name']);
+    if ($datos === false || $datos === '') {
+        return [null, 'No se pudo leer la imagen del cartel.', null, null];
     }
 
     $nombre = 'evento-' . $eventoId . '.' . $tipos[$mime];
     $rel = CARTEL_EVENTO_REL . '/' . $nombre;
-    $dest = dirname(__DIR__) . '/' . $rel;
 
-    foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
-        $viejo = dirname(__DIR__) . '/' . CARTEL_EVENTO_REL . '/evento-' . $eventoId . '.' . $ext;
-        if (is_file($viejo) && realpath($viejo) !== realpath($dest)) {
-            @unlink($viejo);
+    if (asegurarDirectorioCarteles()) {
+        $dest = dirname(__DIR__) . '/' . $rel;
+        foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+            $viejo = dirname(__DIR__) . '/' . CARTEL_EVENTO_REL . '/evento-' . $eventoId . '.' . $ext;
+            if (is_file($viejo) && realpath($viejo) !== realpath($dest)) {
+                @unlink($viejo);
+            }
         }
+        if (is_uploaded_file($archivo['tmp_name'])) {
+            @move_uploaded_file($archivo['tmp_name'], $dest);
+        } else {
+            @file_put_contents($dest, $datos);
+        }
+        @chmod($dest, 0644);
     }
 
-    if (!move_uploaded_file($archivo['tmp_name'], $dest)) {
-        return [null, 'No se pudo guardar el cartel en el servidor.'];
-    }
-    @chmod($dest, 0644);
-
-    return [$rel, null];
+    return [$rel, null, $mime, $datos];
 }

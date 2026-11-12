@@ -26,7 +26,7 @@ function eventoPublico(array $e) {
         'registro_inicio'  => $e['registro_inicio'],
         'registro_fin'     => $e['registro_fin'],
         'ubicacion'        => ligaUbicacion($e['ubicacion'] ?? ''),
-        'cartel'           => cartelEventoPublico($e['cartel'] ?? ''),
+        'cartel'           => cartelUrlEvento($e),
         'es_principal'     => !empty($e['es_principal']),
     ];
 }
