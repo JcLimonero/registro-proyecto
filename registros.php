@@ -108,6 +108,7 @@ function icono($nombre) {
         'agregar'  => '<path d="M5 12h14"/><path d="M12 5v14"/>',
         'guardar'  => '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>',
         'eliminar' => '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+        'editar'   => '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     ];
     return '<svg class="icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . ($trazos[$nombre] ?? '') . '</svg>';
 }
@@ -571,6 +572,72 @@ function renderPaginacion($vista, array $pag) {
     <?php
 }
 
+/** Diálogo modal para editar agencias, áreas o eventos. */
+function renderDialogoCatalogo($csrf, $pagina) {
+    ?>
+    <dialog id="dialogCatalogo" class="dialog-admin">
+        <form method="post" id="formDialogCatalogo" enctype="multipart/form-data" class="dialog-form" action="registros.php">
+            <header class="dialog-cabecera">
+                <h2 id="dialogCatalogoTitulo">Editar</h2>
+                <button type="button" class="btn-sec btn-icono dialog-cerrar" id="dialogCatalogoCerrar" aria-label="Cerrar"><?= icono('eliminar') ?></button>
+            </header>
+            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+            <input type="hidden" name="id" id="dlg-id" value="">
+            <input type="hidden" name="p" id="dlg-p" value="<?= (int) $pagina ?>">
+            <div class="dlg-cuerpo">
+                <div class="dlg-simple">
+                    <label class="etiqueta sec" for="dlg-nombre">Nombre</label>
+                    <input type="text" name="nombre" id="dlg-nombre" maxlength="150">
+                </div>
+                <div class="dlg-evento" hidden>
+                    <div class="dlg-grid">
+                        <div>
+                            <label class="etiqueta sec" for="dlg-ev-nombre">Nombre</label>
+                            <input type="text" id="dlg-ev-nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>">
+                        </div>
+                        <div>
+                            <label class="etiqueta sec" for="dlg-ev-fecha-inicio">Inicio del evento</label>
+                            <input type="datetime-local" name="fecha_inicio" id="dlg-ev-fecha-inicio" required>
+                        </div>
+                        <div>
+                            <label class="etiqueta sec" for="dlg-ev-fecha-fin">Fin del evento</label>
+                            <input type="datetime-local" name="fecha_fin" id="dlg-ev-fecha-fin" required>
+                        </div>
+                        <div>
+                            <label class="etiqueta sec" for="dlg-ev-reg-inicio">Registro desde</label>
+                            <input type="datetime-local" name="registro_inicio" id="dlg-ev-reg-inicio" required>
+                        </div>
+                        <div>
+                            <label class="etiqueta sec" for="dlg-ev-reg-fin">Registro hasta</label>
+                            <input type="datetime-local" name="registro_fin" id="dlg-ev-reg-fin" required>
+                        </div>
+                        <div class="dlg-ancho">
+                            <label class="etiqueta sec" for="dlg-ev-ubicacion">Ubicación (Google Maps)</label>
+                            <input type="url" name="ubicacion" id="dlg-ev-ubicacion" maxlength="500" placeholder="https://maps.app.goo.gl/…">
+                        </div>
+                        <div class="dlg-ancho">
+                            <label class="etiqueta sec" for="dlg-ev-cartel">Cartel nuevo (opcional)</label>
+                            <input type="file" name="cartel" id="dlg-ev-cartel" accept="image/jpeg,image/png,image/webp">
+                            <img id="dlg-cartel-prev" class="dlg-cartel-prev" alt="" hidden>
+                        </div>
+                        <div class="dlg-ancho">
+                            <label class="cat-check">
+                                <input type="checkbox" name="es_principal" value="1" id="dlg-ev-principal">
+                                Evento principal (cartel por defecto en el registro)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer class="dialog-pie">
+                <button type="submit" class="btn-primario" name="accion" id="dlg-submit" value="guardar_agencia">Guardar</button>
+                <button type="button" class="btn btn-sec" id="dialogCatalogoCancelar">Cancelar</button>
+            </footer>
+        </form>
+    </dialog>
+    <?php
+}
+
 /** Tabla de agencias o áreas: alta arriba, editar y eliminar en cada fila. */
 function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
     list(, $singular, $plural, $vista, $max) = CATALOGOS[$tipo];
@@ -602,20 +669,24 @@ function renderCatalogoSimple($tipo, array $filas, $csrf, array $pag) {
             <tbody>
             <?php foreach ($filas as $f): $i = (int) $f['id']; ?>
                 <tr>
-                    <td>
-                        <form id="<?= h($tipo) ?>-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" class="cat-fila">
+                    <td class="cat-nombre-celda"><?= h($f['nombre']) ?></td>
+                    <td class="cat-usos"><?= (int) $f['usos'] ?></td>
+                    <td class="cat-acciones">
+                        <button type="button" class="btn-sec btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
+                                data-tipo="<?= h($tipo) ?>"
+                                data-accion-valor="guardar_<?= h($tipo) ?>"
+                                data-action="<?= h($accionVista) ?>"
+                                data-id="<?= $i ?>"
+                                data-p="<?= (int) $pag['pagina'] ?>"
+                                data-nombre="<?= h($f['nombre']) ?>"><?= icono('editar') ?></button>
+                        <form method="post" action="<?= h($accionVista) ?>" class="cat-eliminar-form">
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                             <input type="hidden" name="id" value="<?= $i ?>">
                             <input type="hidden" name="p" value="<?= (int) $pag['pagina'] ?>">
-                            <input type="text" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= (int) $max ?>" required aria-label="Nombre">
+                            <button type="submit" class="btn-sec btn-peligro btn-icono" name="accion" value="eliminar_<?= h($tipo) ?>" formnovalidate
+                                    aria-label="Eliminar" title="Eliminar"
+                                    onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);"><?= icono('eliminar') ?></button>
                         </form>
-                    </td>
-                    <td class="cat-usos"><?= (int) $f['usos'] ?></td>
-                    <td class="cat-acciones">
-                        <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
-                        <button type="submit" class="btn-sec btn-peligro btn-icono" name="accion" value="eliminar_<?= h($tipo) ?>" form="<?= h($tipo) ?>-<?= $i ?>" formnovalidate
-                                aria-label="Eliminar" title="Eliminar"
-                                onclick="return confirm(<?= jsConfirm('¿Eliminar la ' . $singular . ' «' . $f['nombre'] . '»? Los registros anteriores conservan su texto.') ?>);"><?= icono('eliminar') ?></button>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -676,26 +747,11 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
     <?php else: ?>
     <div class="tarjeta tabla-wrap cat-tabla-wrap">
         <table class="cat-tabla cat-eventos">
-            <colgroup>
-                <col class="col-nombre">
-                <col class="col-fecha">
-                <col class="col-fecha">
-                <col class="col-fecha">
-                <col class="col-fecha">
-                <col class="col-ubicacion">
-                <col class="col-cartel">
-                <col class="col-principal">
-                <col class="col-estado">
-                <col class="col-usos">
-                <col class="col-acciones">
-            </colgroup>
             <thead>
                 <tr>
                     <th>Nombre</th>
-                    <th>Inicio del evento</th>
-                    <th>Fin del evento</th>
-                    <th>Registro desde</th>
-                    <th>Registro hasta</th>
+                    <th>Fechas del evento</th>
+                    <th>Periodo de registro</th>
                     <th>Ubicación</th>
                     <th>Cartel</th>
                     <th>Principal</th>
@@ -709,44 +765,47 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 $estado = estadoEvento($f, $ahora);
                 $i = (int) $f['id'];
                 $registroAbierto = ($f['registro_inicio'] ?? '') <= $ahora && ($f['registro_fin'] ?? '') >= $ahora;
+                $cartelPub = cartelEventoPublico($f['cartel'] ?? '');
+                $payload = [
+                    'nombre' => $f['nombre'],
+                    'fecha_inicio' => fechaDbALocal($f['fecha_inicio']),
+                    'fecha_fin' => fechaDbALocal($f['fecha_fin']),
+                    'registro_inicio' => fechaDbALocal($f['registro_inicio'] ?? ''),
+                    'registro_fin' => fechaDbALocal($f['registro_fin'] ?? ''),
+                    'ubicacion' => $f['ubicacion'] ?? '',
+                    'es_principal' => !empty($f['es_principal']),
+                    'cartel' => $cartelPub,
+                ];
+                $ubicacion = trim((string) ($f['ubicacion'] ?? ''));
             ?>
                 <tr>
-                    <td>
-                        <form id="evento-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" enctype="multipart/form-data" class="cat-fila">
-                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
-                            <input type="hidden" name="id" value="<?= $i ?>">
-                            <input type="hidden" name="p" value="<?= (int) $pag['pagina'] ?>">
-                            <input type="text" name="nombre" value="<?= h($f['nombre']) ?>" maxlength="<?= EVENTO_NOMBRE_MAX ?>" required aria-label="Nombre">
-                        </form>
-                    </td>
-                    <td><input type="datetime-local" name="fecha_inicio" value="<?= h(fechaDbALocal($f['fecha_inicio'])) ?>" required form="evento-<?= $i ?>" aria-label="Inicio del evento"></td>
-                    <td><input type="datetime-local" name="fecha_fin" value="<?= h(fechaDbALocal($f['fecha_fin'])) ?>" required form="evento-<?= $i ?>" aria-label="Fin del evento"></td>
-                    <td><input type="datetime-local" name="registro_inicio" value="<?= h(fechaDbALocal($f['registro_inicio'] ?? '')) ?>" required form="evento-<?= $i ?>" aria-label="Registro desde"></td>
-                    <td><input type="datetime-local" name="registro_fin" value="<?= h(fechaDbALocal($f['registro_fin'] ?? '')) ?>" required form="evento-<?= $i ?>" aria-label="Registro hasta"></td>
-                    <td><input type="url" name="ubicacion" value="<?= h($f['ubicacion'] ?? '') ?>" maxlength="500" placeholder="https://maps.app.goo.gl/…" form="evento-<?= $i ?>" aria-label="Ubicación" inputmode="url"></td>
-                    <td class="cat-cartel">
-                        <?php $cartelPub = cartelEventoPublico($f['cartel'] ?? ''); ?>
-                        <?php if ($cartelPub !== ''): ?>
-                            <img src="<?= h($cartelPub) ?>" alt="" class="cat-cartel-mini" width="52" height="66">
-                        <?php endif; ?>
-                        <input type="file" name="cartel" accept="image/jpeg,image/png,image/webp" form="evento-<?= $i ?>" aria-label="Nuevo cartel">
-                    </td>
-                    <td class="cat-principal">
-                        <label class="cat-check">
-                            <input type="checkbox" name="es_principal" value="1" form="evento-<?= $i ?>"<?= !empty($f['es_principal']) ? ' checked' : '' ?>>
-                            Principal
-                        </label>
-                    </td>
+                    <td class="cat-nombre-celda"><?= h($f['nombre']) ?></td>
+                    <td class="cat-fechas"><?= h(fechaLegible($f['fecha_inicio'])) ?> — <?= h(fechaLegible($f['fecha_fin'])) ?></td>
+                    <td class="cat-fechas"><?= h(fechaLegible($f['registro_inicio'] ?? '')) ?> — <?= h(fechaLegible($f['registro_fin'] ?? '')) ?></td>
+                    <td class="cat-ubicacion-celda"><?= $ubicacion !== '' ? '<a href="' . h($ubicacion) . '" target="_blank" rel="noopener">' . h(mb_strlen($ubicacion) > 48 ? mb_substr($ubicacion, 0, 45, 'UTF-8') . '…' : $ubicacion) . '</a>' : '<span class="sec">—</span>' ?></td>
+                    <td class="cat-cartel"><?php if ($cartelPub !== ''): ?><img src="<?= h($cartelPub) ?>" alt="" class="cat-cartel-mini" width="52" height="66"><?php else: ?><span class="sec">Sin cartel</span><?php endif; ?></td>
+                    <td><?= !empty($f['es_principal']) ? '<span class="pastilla vigente">Sí</span>' : '<span class="sec">No</span>' ?></td>
                     <td>
                         <span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span>
                         <span class="pastilla <?= $registroAbierto ? 'vigente' : 'finalizado' ?>"><?= $registroAbierto ? 'Registro abierto' : 'Registro cerrado' ?></span>
                     </td>
                     <td class="cat-usos"><?= (int) $f['usos'] ?></td>
                     <td class="cat-acciones">
-                        <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" form="evento-<?= $i ?>" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
-                        <button type="submit" class="btn-sec btn-peligro btn-icono" name="accion" value="eliminar_evento" form="evento-<?= $i ?>" formnovalidate
-                                aria-label="Eliminar" title="Eliminar"
-                                onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);"><?= icono('eliminar') ?></button>
+                        <button type="button" class="btn-sec btn-icono js-editar-catalogo" title="Editar" aria-label="Editar"
+                                data-tipo="evento"
+                                data-accion-valor="guardar_evento"
+                                data-action="<?= h($accionVista) ?>"
+                                data-id="<?= $i ?>"
+                                data-p="<?= (int) $pag['pagina'] ?>"
+                                data-evento="<?= h(json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>"><?= icono('editar') ?></button>
+                        <form method="post" action="<?= h($accionVista) ?>" class="cat-eliminar-form">
+                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
+                            <input type="hidden" name="id" value="<?= $i ?>">
+                            <input type="hidden" name="p" value="<?= (int) $pag['pagina'] ?>">
+                            <button type="submit" class="btn-sec btn-peligro btn-icono" name="accion" value="eliminar_evento" formnovalidate
+                                    aria-label="Eliminar" title="Eliminar"
+                                    onclick="return confirm(<?= jsConfirm('¿Eliminar el evento «' . $f['nombre'] . '»? Los registros anteriores se conservan, pero quedan sin evento.') ?>);"><?= icono('eliminar') ?></button>
+                        </form>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -1120,7 +1179,7 @@ if ($autenticado && $vista === 'tabla') {
             mask: url("assets/grupo-vanguardia-logo.png") center / contain no-repeat;
         }
         .login .marca { display: block; margin: 0 auto 20px; }
-        .panel { max-width: 1280px; margin: 0 auto; padding: 16px 12px 32px; }
+        .panel { width: 100%; max-width: none; margin: 0; padding: 16px clamp(12px, 2vw, 40px) 40px; }
         .marca-barra { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .barra { display: flex; flex-direction: column; gap: 12px; align-items: stretch; margin-bottom: 16px; }
         .barra h1 { margin: 0; font-size: 20px; font-weight: 700; }
@@ -1274,7 +1333,7 @@ if ($autenticado && $vista === 'tabla') {
             .acciones .btn, .acciones button { width: auto; }
 
             .tabla-wrap { background: #fff; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); border-radius: 12px; overflow-x: auto; }
-            table { display: table; width: 100%; min-width: 960px; border-collapse: collapse; }
+            table { display: table; width: 100%; min-width: 0; border-collapse: collapse; }
             thead { display: table-header-group; position: static; width: auto; height: auto; overflow: visible; clip: auto; background: #f8fafc; }
             tbody { display: table-row-group; }
             tr { display: table-row; background: transparent; border-radius: 0; box-shadow: none; margin: 0; padding: 0; }
@@ -1334,8 +1393,50 @@ if ($autenticado && $vista === 'tabla') {
         .tab[aria-current="page"] { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
         .tab:not([aria-current="page"]):hover { background: #f4f5f7; }
         #vistaEscaner { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08); padding: 16px; }
+        .dialog-admin {
+            border: 0;
+            border-radius: 16px;
+            padding: 0;
+            width: min(640px, calc(100vw - 32px));
+            max-height: calc(100dvh - 32px);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+        }
+        .dialog-admin::backdrop { background: rgba(17, 24, 39, 0.45); }
+        .dialog-form { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); margin: 0; }
+        .dialog-cabecera {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eef0f3;
+        }
+        .dialog-cabecera h2 { margin: 0; font-size: 18px; font-weight: 700; }
+        .dialog-cerrar { flex: none; }
+        .dlg-cuerpo { padding: 16px 20px; overflow: auto; flex: 1; }
+        .dlg-cuerpo input[type=text],
+        .dlg-cuerpo input[type=url],
+        .dlg-cuerpo input[type=email],
+        .dlg-cuerpo input[type=datetime-local],
+        .dlg-cuerpo input[type=file] {
+            width: 100%;
+            height: 44px;
+            border: 0;
+            background: #eef0f3;
+            padding: 0 12px;
+            font: inherit;
+            font-size: 16px;
+        }
+        .dlg-cuerpo input[type=file] { padding: 8px 12px; height: auto; }
+        .dlg-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .dlg-ancho { grid-column: 1 / -1; }
+        .dlg-cartel-prev { display: block; max-width: 140px; margin-top: 8px; border-radius: 6px; object-fit: cover; }
+        .dialog-pie { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 20px; border-top: 1px solid #eef0f3; }
+        .dialog-pie .btn-primario { flex: 1; min-width: 140px; }
+        .dialog-errores { color: #b02a37; margin: 0 20px 12px; padding-left: 20px; }
+        .dialog-ticket { margin: 0 20px 12px; }
         /* Administración de agencias, áreas y eventos */
-        .catalogo { max-width: 1100px; margin: 0 auto; }
+        .catalogo { width: 100%; max-width: none; margin: 0; }
         .cat-alta { padding: 16px; margin-bottom: 12px; }
         .cat-alta h2 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
         .cat-alta-form { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: end; }
@@ -1360,19 +1461,24 @@ if ($autenticado && $vista === 'tabla') {
             font: inherit; font-size: 16px; color: #212529;
         }
         .catalogo .cat-usos { text-align: center; white-space: nowrap; }
-        .catalogo .cat-acciones { white-space: nowrap; }
-        .catalogo .cat-acciones .btn-icono { margin-right: 6px; }
+        .catalogo .cat-acciones { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+        .catalogo .cat-eliminar-form { display: inline; margin: 0; }
+        .catalogo .cat-nombre-celda { font-weight: 600; }
+        .catalogo .cat-fechas { font-size: 13px; }
+        .catalogo .cat-ubicacion-celda a { color: #212529; word-break: break-all; }
         .paginacion { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px; }
         .pag-info { font-size: 13px; color: #212529; }
         .pag-off { opacity: 0.4; pointer-events: none; }
         @media (min-width: 768px) {
             .cat-alta-form { grid-template-columns: 1fr auto; }
-            .cat-alta-evento { grid-template-columns: 1fr 1fr; }
+            .cat-alta-evento { grid-template-columns: repeat(3, minmax(0, 1fr)); }
             .cat-alta-evento .cat-nombre,
-            .cat-alta-evento .cat-ubicacion { grid-column: 1 / -1; }
-            .catalogo table.cat-eventos { table-layout: auto; min-width: 1480px; }
-            .catalogo .cat-cartel-mini { display: block; object-fit: cover; border-radius: 4px; margin-bottom: 6px; background: #eef0f3; }
-            .catalogo .cat-cartel input[type=file] { max-width: 140px; font-size: 12px; }
+            .cat-alta-evento .cat-ubicacion,
+            .cat-alta-evento .cat-principal-check { grid-column: 1 / -1; }
+            .catalogo table.cat-eventos { table-layout: auto; width: 100%; min-width: 0; }
+            .catalogo .cat-cartel-mini { display: block; object-fit: cover; border-radius: 4px; background: #eef0f3; }
+            .dlg-grid { grid-template-columns: 1fr 1fr; }
+            .dialog-admin { width: min(760px, calc(100vw - 48px)); }
             .catalogo .cat-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
             .catalogo table.cat-eventos th,
             .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
@@ -1548,6 +1654,7 @@ if ($autenticado && $vista === 'tabla') {
             <?php else: ?>
                 <?php renderCatalogoSimple($vista === 'agencias' ? 'agencia' : 'area', $filas, $csrf, $pagCatalogo); ?>
             <?php endif; ?>
+            <?php renderDialogoCatalogo($csrf, $pagCatalogo['pagina'] ?? 1); ?>
         </div>
         <?php else: ?>
         <?php
@@ -1560,23 +1667,26 @@ if ($autenticado && $vista === 'tabla') {
             $agenciaEnLista = $filtros['agencia'] === '' || in_array($filtros['agencia'], array_map('strval', $opcionesAgencias), true);
         ?>
 
-        <?php if ($edicion): ?>
-        <div class="tarjeta edicion">
-            <h2>Editar registro</h2>
-            <p class="ticket sec">ID Ticket: <strong><?= h($edicion['id_ticket']) ?></strong></p>
-            <?php if ($erroresEdicion): ?>
-                <ul role="alert">
-                <?php foreach ($erroresEdicion as $e): ?>
-                    <li><?= h($e) ?></li>
-                <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
-            <form method="post" action="registros.php">
+        <dialog id="dialogRegistro" class="dialog-admin"<?= $edicion ? ' data-autoopen="1"' : '' ?>>
+            <form method="post" action="registros.php" class="dialog-form">
+                <header class="dialog-cabecera">
+                    <h2>Editar registro</h2>
+                    <button type="button" class="btn-sec btn-icono dialog-cerrar" id="dialogRegistroCerrar" aria-label="Cerrar"><?= icono('eliminar') ?></button>
+                </header>
+                <?php if ($edicion): ?>
+                <p class="ticket sec dialog-ticket">ID Ticket: <strong><?= h($edicion['id_ticket']) ?></strong></p>
+                <?php if ($erroresEdicion): ?>
+                    <ul class="dialog-errores" role="alert">
+                    <?php foreach ($erroresEdicion as $e): ?>
+                        <li><?= h($e) ?></li>
+                    <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
                 <input type="hidden" name="accion" value="guardar">
                 <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                 <input type="hidden" name="id" value="<?= (int) $edicion['id'] ?>">
                 <?= camposOcultosFiltros($filtros) ?>
-                <div class="campos">
+                <div class="dlg-cuerpo campos dlg-grid">
                 <?php foreach (CAMPOS_EDITABLES as $campo => $def): ?>
                     <div>
                         <label class="etiqueta sec" for="f-<?= h($campo) ?>"><?= h($def[0]) ?></label>
@@ -1585,13 +1695,15 @@ if ($autenticado && $vista === 'tabla') {
                     </div>
                 <?php endforeach; ?>
                 </div>
-                <div class="botones">
-                    <button type="submit" class="btn-primario btn-icono" aria-label="Guardar" title="Guardar"><?= icono('guardar') ?></button>
-                    <a class="btn btn-sec" href="registros.php<?= $qsFiltros !== '' ? '?' . h($qsFiltros) : '' ?>">Cancelar</a>
-                </div>
+                <footer class="dialog-pie">
+                    <button type="submit" class="btn-primario">Guardar</button>
+                    <a class="btn btn-sec" id="dialogRegistroCancelar" href="registros.php<?= $qsFiltros !== '' ? '?' . h($qsFiltros) : '' ?>">Cancelar</a>
+                </footer>
+                <?php else: ?>
+                <p class="sec">Selecciona un registro para editar.</p>
+                <?php endif; ?>
             </form>
-        </div>
-        <?php endif; ?>
+        </dialog>
 
         <form class="filtros" method="get" action="registros.php" aria-label="Filtros de registros">
             <div class="filtro">
@@ -1664,7 +1776,7 @@ if ($autenticado && $vista === 'tabla') {
                     <?php endforeach; ?>
                         <td class="acciones-celda">
                             <div class="fila-acciones">
-                                <a class="btn-fila" href="registros.php?<?= h(http_build_query(['editar' => (int) $fila['id']] + filtrosActivos($filtros))) ?>">Editar</a>
+                                <a class="btn-fila btn-icono" href="registros.php?<?= h(http_build_query(['editar' => (int) $fila['id']] + filtrosActivos($filtros))) ?>" title="Editar" aria-label="Editar"><?= icono('editar') ?></a>
                                 <form method="post" action="registros.php"
                                       onsubmit="return confirm(<?= h(json_encode('¿Eliminar el registro de ' . valorCelda($fila, 'nombre') . '? Esta acción no se puede deshacer.', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)) ?>);">
                                     <input type="hidden" name="accion" value="eliminar">
@@ -1683,6 +1795,9 @@ if ($autenticado && $vista === 'tabla') {
         </div>
         <?php endif; ?>
     </div>
+    <?php if ($autenticado && ($vista === 'tabla' || in_array($vista, ['agencias', 'areas', 'eventos'], true))): ?>
+    <script src="admin-dialog.js"></script>
+    <?php endif; ?>
     <?php if ($vista === 'escanear'): ?>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="escaner.js"></script>
