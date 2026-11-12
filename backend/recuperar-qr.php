@@ -87,22 +87,25 @@ try {
         }
     }
 
-    if (count($filas) > 1) {
+    // Varios registros con el mismo correo en un solo evento → el más reciente (fecha_registro DESC).
+    $eventosDistintos = [];
+    foreach ($filas as $f) {
+        $id = (int) $f['evento_id'];
+        if (!isset($eventosDistintos[$id])) {
+            $eventosDistintos[$id] = $f['evento_nombre'];
+        }
+    }
+
+    if (count($eventosDistintos) > 1 && $eventoId === 0) {
         $eventos = [];
-        foreach ($filas as $f) {
-            $id = (int) $f['evento_id'];
-            if (!isset($eventos[$id])) {
-                $eventos[$id] = [
-                    'id'     => $id,
-                    'nombre' => $f['evento_nombre'],
-                ];
-            }
+        foreach ($eventosDistintos as $id => $nombre) {
+            $eventos[] = ['id' => $id, 'nombre' => $nombre];
         }
         echo json_encode([
             'success'         => false,
             'necesita_evento' => true,
-            'message'         => 'Tienes más de un registro; elige el evento.',
-            'eventos'         => array_values($eventos),
+            'message'         => 'Tienes registros en varios eventos; elige cuál necesitas.',
+            'eventos'         => $eventos,
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }

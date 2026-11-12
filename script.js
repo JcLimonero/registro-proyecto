@@ -286,6 +286,26 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const result = await solicitarRecuperacion(correo, reenviar);
                 if (result.necesita_evento && result.eventos && result.eventos.length) {
+                    if (result.eventos.length === 1) {
+                        const unico = result.eventos[0];
+                        llenarSelect(selectEventoRecuperar, '', [unico], ev => String(ev.id));
+                        selectEventoRecuperar.selectedIndex = 1;
+                        grupoEventoRecuperar.hidden = true;
+                        const retry = await solicitarRecuperacion(correo, reenviar);
+                        if (retry.success && retry.registro) {
+                            let aviso = '';
+                            if (reenviar && retry.correoEnviado === false) {
+                                aviso = retry.mensajeCorreo || 'No se pudo reenviar el correo; aún puedes ver y descargar tu QR aquí.';
+                            } else if (reenviar && retry.correoEnviado) {
+                                aviso = 'Te reenviamos el correo con tu QR.';
+                            }
+                            mostrarConfirmacion(retry.registro, aviso);
+                            generarQrs(retry.registro.idTicket, retry.registro.eventoUbicacion || '');
+                            return;
+                        }
+                        mostrarErrorRecuperar(retry.message || 'No se encontró el registro.');
+                        return;
+                    }
                     llenarSelect(selectEventoRecuperar, 'Selecciona el evento', result.eventos, ev => String(ev.id));
                     grupoEventoRecuperar.hidden = false;
                     selectEventoRecuperar.required = true;
