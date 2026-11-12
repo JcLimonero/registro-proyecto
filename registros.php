@@ -592,26 +592,30 @@ function renderDialogoCatalogo($csrf, $pagina) {
                     <input type="text" name="nombre" id="dlg-nombre" maxlength="150">
                 </div>
                 <div class="dlg-evento" hidden>
-                    <div class="dlg-grid">
-                        <div>
+                    <div class="dlg-grid dlg-grid-evento">
+                        <div class="dlg-ancho">
                             <label class="etiqueta sec" for="dlg-ev-nombre">Nombre</label>
                             <input type="text" id="dlg-ev-nombre" maxlength="<?= EVENTO_NOMBRE_MAX ?>">
                         </div>
-                        <div>
-                            <label class="etiqueta sec" for="dlg-ev-fecha-inicio">Inicio del evento</label>
-                            <input type="datetime-local" name="fecha_inicio" id="dlg-ev-fecha-inicio" required>
+                        <div class="dlg-par">
+                            <div>
+                                <label class="etiqueta sec" for="dlg-ev-fecha-inicio">Inicio del evento</label>
+                                <input type="datetime-local" name="fecha_inicio" id="dlg-ev-fecha-inicio" required>
+                            </div>
+                            <div>
+                                <label class="etiqueta sec" for="dlg-ev-fecha-fin">Fin del evento</label>
+                                <input type="datetime-local" name="fecha_fin" id="dlg-ev-fecha-fin" required>
+                            </div>
                         </div>
-                        <div>
-                            <label class="etiqueta sec" for="dlg-ev-fecha-fin">Fin del evento</label>
-                            <input type="datetime-local" name="fecha_fin" id="dlg-ev-fecha-fin" required>
-                        </div>
-                        <div>
-                            <label class="etiqueta sec" for="dlg-ev-reg-inicio">Registro desde</label>
-                            <input type="datetime-local" name="registro_inicio" id="dlg-ev-reg-inicio" required>
-                        </div>
-                        <div>
-                            <label class="etiqueta sec" for="dlg-ev-reg-fin">Registro hasta</label>
-                            <input type="datetime-local" name="registro_fin" id="dlg-ev-reg-fin" required>
+                        <div class="dlg-par">
+                            <div>
+                                <label class="etiqueta sec" for="dlg-ev-reg-inicio">Registro desde</label>
+                                <input type="datetime-local" name="registro_inicio" id="dlg-ev-reg-inicio" required>
+                            </div>
+                            <div>
+                                <label class="etiqueta sec" for="dlg-ev-reg-fin">Registro hasta</label>
+                                <input type="datetime-local" name="registro_fin" id="dlg-ev-reg-fin" required>
+                            </div>
                         </div>
                         <div class="dlg-ancho">
                             <label class="etiqueta sec" for="dlg-ev-ubicacion">Ubicación (Google Maps)</label>
@@ -1479,7 +1483,12 @@ if ($autenticado && $vista === 'tabla') {
         }
         .dlg-cuerpo input[type=file] { padding: 8px 12px; height: auto; }
         .dlg-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        .dlg-ancho { grid-column: 1 / -1; }
+        .dlg-grid-evento { display: flex; flex-direction: column; gap: 12px; }
+        .dlg-par { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+        @media (max-width: 520px) {
+            .dlg-par { grid-template-columns: 1fr; }
+        }
+        .dlg-ancho { grid-column: 1 / -1; width: 100%; }
         .dlg-cartel-prev { display: block; max-width: 140px; margin-top: 8px; border-radius: 6px; object-fit: cover; }
         .dialog-pie {
             display: flex;
@@ -1541,7 +1550,7 @@ if ($autenticado && $vista === 'tabla') {
             .cat-alta-evento .cat-principal-check { grid-column: 1 / -1; }
             .tabla-listado.cat-eventos { table-layout: auto; }
             .tabla-listado.cat-eventos th { white-space: normal; line-height: 1.2; }
-            .dlg-grid { grid-template-columns: 1fr 1fr; }
+            .dlg-grid:not(.dlg-grid-evento) { grid-template-columns: 1fr 1fr; }
             .dialog-admin { width: min(760px, calc(100vw - 48px)); }
             .cat-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
         }
