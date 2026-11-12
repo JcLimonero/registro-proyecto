@@ -50,8 +50,7 @@ body {
     display: block;
     width: 100%;
     height: auto;
-    max-height: min(42vh, 360px);
-    object-fit: cover;
+    object-fit: contain;
     object-position: center top;
 }
 
@@ -346,12 +345,14 @@ h1 {
     }
 
     .cartel {
-        flex: 0 0 38%;
-        width: 38%;
+        flex: 0 0 44%;
+        width: 44%;
         max-width: none;
-        align-self: stretch;
-        object-fit: cover;
-        object-position: center top;
+        height: auto;
+        align-self: center;
+        object-fit: contain;
+        object-position: center;
+        background: #1a1410;
         position: sticky;
         top: 24px;
         max-height: calc(100dvh - 48px);
