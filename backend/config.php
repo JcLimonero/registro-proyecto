@@ -186,7 +186,8 @@ function ahoraMexico() {
  */
 function eventosVigentes(PDO $conn, $ahora = null) {
     $stmt = $conn->prepare(
-        'SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal FROM eventos
+        'SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal,
+                (LENGTH(cartel_datos) > 0) AS tiene_cartel_blob FROM eventos
          WHERE registro_inicio <= :ahora AND registro_fin >= :ahora2
          ORDER BY es_principal DESC, registro_inicio, id'
     );
@@ -201,13 +202,15 @@ function eventosVigentes(PDO $conn, $ahora = null) {
  */
 function eventoReferencia(PDO $conn, $ahora = null) {
     $ahora = $ahora ?? ahoraMexico();
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal FROM eventos WHERE registro_inicio > :ahora ORDER BY registro_inicio, id LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal,
+            (LENGTH(cartel_datos) > 0) AS tiene_cartel_blob FROM eventos WHERE registro_inicio > :ahora ORDER BY registro_inicio, id LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($fila) {
         return [$fila, 'proximo'];
     }
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal FROM eventos WHERE registro_fin < :ahora ORDER BY registro_fin DESC, id DESC LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal,
+            (LENGTH(cartel_datos) > 0) AS tiene_cartel_blob FROM eventos WHERE registro_fin < :ahora ORDER BY registro_fin DESC, id DESC LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     return $fila ? [$fila, 'ultimo'] : [null, null];

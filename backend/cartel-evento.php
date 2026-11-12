@@ -36,7 +36,9 @@ function cartelUrlEvento(array $e) {
     if ($ruta !== '' && cartelEventoPublico($ruta) !== '') {
         return $ruta;
     }
-    if ($id > 0 && $ruta !== '') {
+    $tieneBlob = !empty($e['tiene_cartel_blob'])
+        || (isset($e['cartel_datos']) && $e['cartel_datos'] !== '' && $e['cartel_datos'] !== null);
+    if ($id > 0 && $ruta !== '' && $tieneBlob) {
         return 'backend/cartel-evento-imagen.php?id=' . $id;
     }
     return '';

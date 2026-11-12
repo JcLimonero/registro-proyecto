@@ -49,6 +49,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function actualizarCartel(evento) {
         if (!imgCartel) return;
         const src = urlCartel(evento);
+        imgCartel.onerror = function () {
+            imgCartel.onerror = null;
+            const actual = imgCartel.getAttribute('src') || '';
+            if (actual !== CARTEL_DEFECTO && !actual.endsWith(CARTEL_DEFECTO)) {
+                imgCartel.src = CARTEL_DEFECTO;
+            }
+        };
         if (imgCartel.getAttribute('src') !== src) {
             imgCartel.src = src;
         }

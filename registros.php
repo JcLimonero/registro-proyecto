@@ -1052,6 +1052,7 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
             createTable();
             if ($vista === 'eventos') {
                 $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.registro_inicio, e.registro_fin, e.ubicacion, e.cartel, e.es_principal,
+                        (LENGTH(e.cartel_datos) > 0) AS tiene_cartel_blob,
                         (SELECT COUNT(*) FROM registros r WHERE r.evento_id = e.id) AS usos
                     FROM eventos e ORDER BY e.fecha_inicio DESC, e.id DESC')->fetchAll(PDO::FETCH_ASSOC);
             } elseif ($vista === 'agencias') {
