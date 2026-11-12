@@ -5,6 +5,7 @@
  * vigente, el registro está cerrado y se devuelve el próximo o el último.
  */
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/cartel-evento.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -25,6 +26,8 @@ function eventoPublico(array $e) {
         'registro_inicio'  => $e['registro_inicio'],
         'registro_fin'     => $e['registro_fin'],
         'ubicacion'        => ligaUbicacion($e['ubicacion'] ?? ''),
+        'cartel'           => cartelEventoPublico($e['cartel'] ?? ''),
+        'es_principal'     => !empty($e['es_principal']),
     ];
 }
 

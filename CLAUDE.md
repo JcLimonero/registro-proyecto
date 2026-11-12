@@ -1,6 +1,6 @@
 # Sistema de registro con escáner QR
 
-App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un ticket con QR y validar su entrada con un escáner (lector que teclea el ID del ticket). La página pública muestra el cartel del evento. Un número de empleado no puede registrarse dos veces en el mismo evento (`uniq_empleado_evento`). La descarga del QR guarda el pase completo: evento, fechas, ubicación (liga de Maps del evento) y datos del registro.
+App PHP + HTML/JS para registrar asistentes a un evento, enviarles por correo un ticket con QR y validar su entrada con un escáner (lector que teclea el ID del ticket). La página pública muestra el **cartel del evento vigente** (subida en admin → pestaña Eventos; el marcado como **principal** es el predeterminado; al elegir otro evento en el formulario cambia el cartel). Los archivos viven en `assets/carteles/` (deben ser escribibles en el servidor). Sin cartel en BD se usa `assets/posada-vanguardia.jpg`. Un número de empleado no puede registrarse dos veces en el mismo evento (`uniq_empleado_evento`). La descarga del QR guarda el pase completo: evento, fechas, ubicación (liga de Maps del evento) y datos del registro.
 
 ## Cómo correrlo
 1. `composer install` (PHPMailer, endroid/qr-code, TCPDF).

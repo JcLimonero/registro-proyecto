@@ -127,7 +127,13 @@ function createTable() {
                 registro_fin DATETIME NULL,
                 ubicacion VARCHAR(500) NULL
             ) DEFAULT CHARSET=utf8mb4");
-            foreach (['ubicacion' => 'VARCHAR(500) NULL', 'registro_inicio' => 'DATETIME NULL', 'registro_fin' => 'DATETIME NULL'] as $columna => $definicion) {
+            foreach ([
+                'ubicacion'      => 'VARCHAR(500) NULL',
+                'registro_inicio' => 'DATETIME NULL',
+                'registro_fin'    => 'DATETIME NULL',
+                'cartel'         => 'VARCHAR(255) NULL',
+                'es_principal'   => 'TINYINT(1) NOT NULL DEFAULT 0',
+            ] as $columna => $definicion) {
                 $stmtCol = $conn->prepare(
                     "SELECT COUNT(*) FROM information_schema.COLUMNS
                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'eventos' AND COLUMN_NAME = :columna"
@@ -178,9 +184,9 @@ function ahoraMexico() {
  */
 function eventosVigentes(PDO $conn, $ahora = null) {
     $stmt = $conn->prepare(
-        'SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion FROM eventos
+        'SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal FROM eventos
          WHERE registro_inicio <= :ahora AND registro_fin >= :ahora2
-         ORDER BY registro_inicio, id'
+         ORDER BY es_principal DESC, registro_inicio, id'
     );
     $ahora = $ahora ?? ahoraMexico();
     $stmt->execute([':ahora' => $ahora, ':ahora2' => $ahora]);
@@ -193,13 +199,13 @@ function eventosVigentes(PDO $conn, $ahora = null) {
  */
 function eventoReferencia(PDO $conn, $ahora = null) {
     $ahora = $ahora ?? ahoraMexico();
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion FROM eventos WHERE registro_inicio > :ahora ORDER BY registro_inicio, id LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal FROM eventos WHERE registro_inicio > :ahora ORDER BY registro_inicio, id LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($fila) {
         return [$fila, 'proximo'];
     }
-    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion FROM eventos WHERE registro_fin < :ahora ORDER BY registro_fin DESC, id DESC LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal FROM eventos WHERE registro_fin < :ahora ORDER BY registro_fin DESC, id DESC LIMIT 1');
     $stmt->execute([':ahora' => $ahora]);
     $fila = $stmt->fetch(PDO::FETCH_ASSOC);
     return $fila ? [$fila, 'ultimo'] : [null, null];

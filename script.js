@@ -22,8 +22,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectArea = document.getElementById('area');
     const errorForm = document.getElementById('errorForm');
     const btnRegistrar = document.getElementById('btnRegistrar');
+    const imgCartel = document.getElementById('cartelEvento');
 
     let qrCodeInstance = null;
+    let eventosVigentes = [];
+    const CARTEL_DEFECTO = 'assets/posada-vanguardia.jpg';
+
+    function urlCartel(evento) {
+        return (evento && evento.cartel) ? evento.cartel : CARTEL_DEFECTO;
+    }
+
+    function eventoPorId(id) {
+        if (!id) return null;
+        return eventosVigentes.find(e => String(e.id) === String(id)) || null;
+    }
+
+    function eventoPredeterminado(eventos) {
+        if (!eventos || !eventos.length) return null;
+        return eventos.find(e => e.es_principal) || eventos[0];
+    }
+
+    function subtituloEvento(evento) {
+        return evento.nombre + ' · ' + fechaLegible(evento.fecha_inicio) + ' – ' + fechaLegible(evento.fecha_fin);
+    }
+
+    function actualizarCartel(evento) {
+        if (!imgCartel) return;
+        const src = urlCartel(evento);
+        if (imgCartel.getAttribute('src') !== src) {
+            imgCartel.src = src;
+        }
+        imgCartel.alt = evento && evento.nombre ? `Cartel: ${evento.nombre}` : 'Cartel del evento';
+    }
 
     // «2026-10-05 18:30:00» -> «05/10/2026 18:30» (sin pasar por Date: ya viene en hora de México)
     function fechaLegible(valor) {
@@ -85,7 +115,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(cat.message || 'Error al cargar');
             }
 
+            eventosVigentes = cat.eventos || [];
+
             if (!cat.abierto || !cat.eventos.length) {
+                if (cat.referencia) {
+                    actualizarCartel(cat.referencia);
+                }
                 mostrarCerrado(textoCerrado(cat.referencia));
                 return;
             }
@@ -93,17 +128,22 @@ document.addEventListener('DOMContentLoaded', function() {
             llenarSelect(selectAgencia, 'Selecciona una agencia', cat.agencias, a => a.nombre);
             llenarSelect(selectArea, 'Selecciona un área', cat.areas, a => a.nombre);
 
+            const predeterminado = eventoPredeterminado(cat.eventos);
+            actualizarCartel(predeterminado);
+
             if (cat.eventos.length === 1) {
                 llenarSelect(selectEvento, '', cat.eventos, e => String(e.id));
                 selectEvento.selectedIndex = 1;
                 selectEvento.required = false;
                 grupoEvento.hidden = true;
-                eventoActual.textContent = cat.eventos[0].nombre + ' · ' + fechaLegible(cat.eventos[0].fecha_inicio) + ' – ' + fechaLegible(cat.eventos[0].fecha_fin);
+                eventoActual.textContent = subtituloEvento(cat.eventos[0]);
                 eventoActual.hidden = false;
             } else {
                 llenarSelect(selectEvento, 'Selecciona un evento', cat.eventos, e => String(e.id));
                 selectEvento.required = true;
                 grupoEvento.hidden = false;
+                eventoActual.textContent = predeterminado ? subtituloEvento(predeterminado) : '';
+                eventoActual.hidden = !predeterminado;
             }
 
             estadoCarga.hidden = true;
@@ -118,6 +158,23 @@ document.addEventListener('DOMContentLoaded', function() {
             estadoCarga.textContent = 'No se pudo cargar el registro. Recarga la página para intentar de nuevo.';
         }
     }
+
+    selectEvento.addEventListener('change', function() {
+        const elegido = eventoPorId(selectEvento.value);
+        const mostrar = elegido || eventoPredeterminado(eventosVigentes);
+        actualizarCartel(mostrar);
+        if (eventosVigentes.length > 1) {
+            if (elegido) {
+                eventoActual.textContent = subtituloEvento(elegido);
+                eventoActual.hidden = false;
+            } else if (mostrar) {
+                eventoActual.textContent = subtituloEvento(mostrar);
+                eventoActual.hidden = false;
+            } else {
+                eventoActual.hidden = true;
+            }
+        }
+    });
 
     cargarCatalogos();
 

@@ -22,3 +22,7 @@ desktop.ini
 # Archivos temporales
 *.tmp
 *.bak
+
+# Carteles subidos en admin (no versionar)
+/assets/carteles/*
+!/assets/carteles/.gitkeep

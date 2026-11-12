@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/backend/config.php';
+require_once __DIR__ . '/backend/cartel-evento.php';
 
 /** Columnas del Excel (todas). */
 const COLUMNAS_REGISTROS = [
@@ -376,7 +377,35 @@ function jsConfirm($texto) {
  * Alta, edición y baja de agencias, áreas y eventos. Prepared statements siempre.
  * Termina siempre con una redirección y un mensaje.
  */
-function procesarCatalogo(PDO $conn, $accion, array $post) {
+/**
+ * Cartel subido y marca de evento principal en el admin de eventos.
+ */
+function aplicarExtrasEvento(PDO $conn, array $post, array $files, $eventoId) {
+    $eventoId = (int) $eventoId;
+    $marcarPrincipal = !empty($post['es_principal']);
+    if ($marcarPrincipal) {
+        $conn->exec('UPDATE eventos SET es_principal = 0');
+    }
+    $conn->prepare('UPDATE eventos SET es_principal = :p WHERE id = :id')
+        ->execute([':p' => $marcarPrincipal ? 1 : 0, ':id' => $eventoId]);
+
+    $archivo = $files['cartel'] ?? [];
+    list($rel, $err) = guardarCartelEventoArchivo($archivo, $eventoId);
+    if ($err !== null) {
+        volverConMensaje('error', $err, 'eventos');
+    }
+    if ($rel !== null) {
+        $prevStmt = $conn->prepare('SELECT cartel FROM eventos WHERE id = :id');
+        $prevStmt->execute([':id' => $eventoId]);
+        $prevCartel = $prevStmt->fetchColumn();
+        if ($prevCartel && $prevCartel !== $rel) {
+            eliminarCartelEventoArchivo($prevCartel);
+        }
+        $conn->prepare('UPDATE eventos SET cartel = :c WHERE id = :id')->execute([':c' => $rel, ':id' => $eventoId]);
+    }
+}
+
+function procesarCatalogo(PDO $conn, $accion, array $post, array $files = []) {
     list($operacion, $tipo) = explode('_', $accion, 2);
     $vista = $tipo === 'evento' ? 'eventos' : CATALOGOS[$tipo][3];
     $id = idValido($post['id'] ?? null);
@@ -390,12 +419,18 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
                 if ($id === null) {
                     volverConMensaje('error', 'Evento no válido.', $vista);
                 }
+                $cartelStmt = $conn->prepare('SELECT cartel FROM eventos WHERE id = :id');
+                $cartelStmt->execute([':id' => $id]);
+                $cartelRuta = $cartelStmt->fetchColumn();
                 $conn->beginTransaction();
                 // Los registros viejos quedan sin evento (conservan todos sus datos)
                 $conn->prepare('UPDATE registros SET evento_id = NULL WHERE evento_id = :id')->execute([':id' => $id]);
                 $stmt = $conn->prepare('DELETE FROM eventos WHERE id = :id');
                 $stmt->execute([':id' => $id]);
                 $conn->commit();
+                if ($stmt->rowCount()) {
+                    eliminarCartelEventoArchivo($cartelRuta);
+                }
                 volverConMensaje($stmt->rowCount() ? 'ok' : 'error', $stmt->rowCount() ? 'Evento eliminado.' : 'El evento ya no existe.', $vista);
             }
 
@@ -423,6 +458,8 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
             if ($sinId) {
                 $conn->prepare('INSERT INTO eventos (nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion) VALUES (:n, :i, :f, :ri, :rf, :u)')
                     ->execute([':n' => $nombre, ':i' => $inicio, ':f' => $fin, ':ri' => $regIni, ':rf' => $regFin, ':u' => $ubicacion === '' ? null : $ubicacion]);
+                $nuevoId = (int) $conn->lastInsertId();
+                aplicarExtrasEvento($conn, $post, $files, $nuevoId);
                 volverConMensaje('ok', 'Evento creado.', $vista);
             }
             if ($id === null) {
@@ -437,6 +474,7 @@ function procesarCatalogo(PDO $conn, $accion, array $post) {
                     volverConMensaje('error', 'El evento ya no existe.', $vista);
                 }
             }
+            aplicarExtrasEvento($conn, $post, $files, $id);
             volverConMensaje('ok', 'Evento guardado.', $vista);
         }
 
@@ -595,7 +633,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
     ?>
     <section class="tarjeta cat-alta">
         <h2>Nuevo evento</h2>
-        <form method="post" action="registros.php?vista=eventos" class="cat-alta-form cat-alta-evento">
+        <form method="post" action="registros.php?vista=eventos" enctype="multipart/form-data" class="cat-alta-form cat-alta-evento">
             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
             <div class="cat-campo cat-nombre">
                 <label class="etiqueta sec" for="nuevo-evento">Nombre</label>
@@ -621,6 +659,15 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 <label class="etiqueta sec" for="nuevo-ubicacion">Ubicación</label>
                 <input type="url" id="nuevo-ubicacion" name="ubicacion" maxlength="500" placeholder="https://maps.app.goo.gl/…" inputmode="url">
             </div>
+            <div class="cat-campo">
+                <label class="etiqueta sec" for="nuevo-cartel">Cartel (JPG, PNG o WebP)</label>
+                <input type="file" id="nuevo-cartel" name="cartel" accept="image/jpeg,image/png,image/webp">
+            </div>
+            <div class="cat-campo cat-principal-check">
+                <label class="etiqueta sec cat-check">
+                    <input type="checkbox" name="es_principal" value="1"> Evento principal (cartel por defecto en el registro)
+                </label>
+            </div>
             <button type="submit" class="btn-primario btn-icono" name="accion" value="guardar_evento" aria-label="Agregar" title="Agregar"><?= icono('agregar') ?></button>
         </form>
     </section>
@@ -636,6 +683,8 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 <col class="col-fecha">
                 <col class="col-fecha">
                 <col class="col-ubicacion">
+                <col class="col-cartel">
+                <col class="col-principal">
                 <col class="col-estado">
                 <col class="col-usos">
                 <col class="col-acciones">
@@ -648,6 +697,8 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     <th>Registro desde</th>
                     <th>Registro hasta</th>
                     <th>Ubicación</th>
+                    <th>Cartel</th>
+                    <th>Principal</th>
                     <th>Estado</th>
                     <th>Registros</th>
                     <th>Acciones</th>
@@ -661,7 +712,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
             ?>
                 <tr>
                     <td>
-                        <form id="evento-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" class="cat-fila">
+                        <form id="evento-<?= $i ?>" method="post" action="<?= h($accionVista) ?>" enctype="multipart/form-data" class="cat-fila">
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>">
                             <input type="hidden" name="id" value="<?= $i ?>">
                             <input type="hidden" name="p" value="<?= (int) $pag['pagina'] ?>">
@@ -673,6 +724,19 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     <td><input type="datetime-local" name="registro_inicio" value="<?= h(fechaDbALocal($f['registro_inicio'] ?? '')) ?>" required form="evento-<?= $i ?>" aria-label="Registro desde"></td>
                     <td><input type="datetime-local" name="registro_fin" value="<?= h(fechaDbALocal($f['registro_fin'] ?? '')) ?>" required form="evento-<?= $i ?>" aria-label="Registro hasta"></td>
                     <td><input type="url" name="ubicacion" value="<?= h($f['ubicacion'] ?? '') ?>" maxlength="500" placeholder="https://maps.app.goo.gl/…" form="evento-<?= $i ?>" aria-label="Ubicación" inputmode="url"></td>
+                    <td class="cat-cartel">
+                        <?php $cartelPub = cartelEventoPublico($f['cartel'] ?? ''); ?>
+                        <?php if ($cartelPub !== ''): ?>
+                            <img src="<?= h($cartelPub) ?>" alt="" class="cat-cartel-mini" width="52" height="66">
+                        <?php endif; ?>
+                        <input type="file" name="cartel" accept="image/jpeg,image/png,image/webp" form="evento-<?= $i ?>" aria-label="Nuevo cartel">
+                    </td>
+                    <td class="cat-principal">
+                        <label class="cat-check">
+                            <input type="checkbox" name="es_principal" value="1" form="evento-<?= $i ?>"<?= !empty($f['es_principal']) ? ' checked' : '' ?>>
+                            Principal
+                        </label>
+                    </td>
                     <td>
                         <span class="pastilla <?= h($estado) ?>"><?= h($etiquetas[$estado]) ?></span>
                         <span class="pastilla <?= $registroAbierto ? 'vigente' : 'finalizado' ?>"><?= $registroAbierto ? 'Registro abierto' : 'Registro cerrado' ?></span>
@@ -806,7 +870,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (preg_match('/^(guardar|eliminar)_(agencia|area|evento)$/', $accion)) {
-            procesarCatalogo($conn, $accion, $_POST);
+            procesarCatalogo($conn, $accion, $_POST, $_FILES);
         }
 
         try {
@@ -896,7 +960,7 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
         try {
             createTable();
             if ($vista === 'eventos') {
-                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.registro_inicio, e.registro_fin, e.ubicacion,
+                $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.registro_inicio, e.registro_fin, e.ubicacion, e.cartel, e.es_principal,
                         (SELECT COUNT(*) FROM registros r WHERE r.evento_id = e.id) AS usos
                     FROM eventos e ORDER BY e.fecha_inicio DESC, e.id DESC')->fetchAll(PDO::FETCH_ASSOC);
             } elseif ($vista === 'agencias') {
@@ -1306,7 +1370,10 @@ if ($autenticado && $vista === 'tabla') {
             .cat-alta-evento { grid-template-columns: 1fr 1fr; }
             .cat-alta-evento .cat-nombre,
             .cat-alta-evento .cat-ubicacion { grid-column: 1 / -1; }
-            .catalogo table.cat-eventos { table-layout: auto; min-width: 1280px; }
+            .catalogo table.cat-eventos { table-layout: auto; min-width: 1480px; }
+            .catalogo .cat-cartel-mini { display: block; object-fit: cover; border-radius: 4px; margin-bottom: 6px; background: #eef0f3; }
+            .catalogo .cat-cartel input[type=file] { max-width: 140px; font-size: 12px; }
+            .catalogo .cat-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; white-space: nowrap; }
             .catalogo table.cat-eventos th,
             .catalogo table.cat-eventos td { padding-left: 8px; padding-right: 8px; }
             .catalogo table.cat-eventos th { white-space: normal; letter-spacing: 0.02em; line-height: 1.2; }
