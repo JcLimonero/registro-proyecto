@@ -355,32 +355,39 @@ h1 {
 
 .qr-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
     justify-content: center;
+    gap: 20px;
     margin-top: 16px;
     padding: 16px;
     background: #fff;
     border: 1px solid #adb5bd;
 }
 
-.qr-principal {
+.qr-principal,
+.qr-ubicacion-bloque {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
 }
 
-.pase-pie {
-    margin-top: 16px;
-    padding: 16px 12px 8px;
+.pase-imagen-pie {
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid #dee2e6;
     text-align: center;
 }
 
-.pase-pie #qrUbicacion {
-    display: inline-block;
-    margin-top: 4px;
+.pase-imagen-pie img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+    object-fit: contain;
 }
 
 .qr-leyenda {
@@ -395,8 +402,8 @@ h1 {
 #qrUbicacion img,
 #qrUbicacion canvas {
     display: block;
-    width: 128px !important;
-    height: 128px !important;
+    width: 50px !important;
+    height: 50px !important;
 }
 
 /* El QR ocupa el ancho disponible (con tope para escritorio) */

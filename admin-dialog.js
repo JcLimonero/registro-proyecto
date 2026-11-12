@@ -6,6 +6,7 @@
         const dlgEvento = formCat.querySelector('.dlg-evento');
         const dlgTitulo = document.getElementById('dialogCatalogoTitulo');
         const dlgCartelPrev = document.getElementById('dlg-cartel-prev');
+        const dlgPasePiePrev = document.getElementById('dlg-pase-pie-prev');
         const dlgSubmit = document.getElementById('dlg-submit');
         const dlgId = document.getElementById('dlg-id');
 
@@ -88,6 +89,14 @@
                     dlgCartelPrev.removeAttribute('src');
                     dlgCartelPrev.hidden = true;
                 }
+                const filePie = document.getElementById('dlg-ev-pase-pie');
+                if (filePie) {
+                    filePie.value = '';
+                }
+                if (dlgPasePiePrev) {
+                    dlgPasePiePrev.removeAttribute('src');
+                    dlgPasePiePrev.hidden = true;
+                }
             } else {
                 setVal('dlg-nombre', '');
             }
@@ -154,6 +163,19 @@
                         } else {
                             dlgCartelPrev.removeAttribute('src');
                             dlgCartelPrev.hidden = true;
+                        }
+                    }
+                    const filePie = document.getElementById('dlg-ev-pase-pie');
+                    if (filePie) {
+                        filePie.value = '';
+                    }
+                    if (dlgPasePiePrev) {
+                        if (data.pase_pie) {
+                            dlgPasePiePrev.src = data.pase_pie;
+                            dlgPasePiePrev.hidden = false;
+                        } else {
+                            dlgPasePiePrev.removeAttribute('src');
+                            dlgPasePiePrev.hidden = true;
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once __DIR__ . '/pase-pie-evento.php';
 
 header('Content-Type: application/json');
 
@@ -96,6 +97,7 @@ try {
         'fecha_inicio' => $evento['fecha_inicio'],
         'fecha_fin' => $evento['fecha_fin'],
         'ubicacion' => ligaUbicacion($evento['ubicacion'] ?? ''),
+        'pasePie' => pasePieUrlEvento($evento),
     ]);
 
 } catch (PDOException $e) {

@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let eventosVigentes = [];
     let registroAbierto = false;
     const CARTEL_DEFECTO = 'assets/posada-vanguardia.jpg';
+    const QR_ENTRADA_PX = 200;
+    const QR_UBICACION_PX = 50;
 
     function urlCartel(evento) {
         return (evento && evento.cartel) ? evento.cartel : CARTEL_DEFECTO;
@@ -377,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datos.eventoInicio = fechaLegible(result.fecha_inicio);
                 datos.eventoFin = fechaLegible(result.fecha_fin);
                 datos.eventoUbicacion = result.ubicacion || '';
+                datos.pasePie = result.pasePie || '';
                 mostrarConfirmacion(datos);
                 generarQrs(idTicket, datos.eventoUbicacion || '');
                 
@@ -436,16 +439,35 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('confirmPuesto').textContent = datos.puesto;
         document.getElementById('confirmArea').textContent = datos.area;
         document.getElementById('confirmCorreo').textContent = datos.correo;
+        actualizarImagenPiePase(datos.pasePie || '');
 
         formContainer.style.display = 'none';
         confirmationContainer.style.display = 'block';
         togglePaginaConfirmacion(true);
     }
 
+    function actualizarImagenPiePase(src) {
+        const bloque = document.getElementById('paseImagenPie');
+        const img = document.getElementById('pasePieImg');
+        if (!bloque || !img) {
+            return;
+        }
+        const url = (src || '').trim();
+        if (url) {
+            img.src = url;
+            img.alt = 'Información del evento';
+            bloque.hidden = false;
+        } else {
+            img.removeAttribute('src');
+            img.alt = '';
+            bloque.hidden = true;
+        }
+    }
+
     function generarQrs(ticketId, ubicacionUrl) {
         const qrContainer = document.getElementById('qrCode');
         const ubicacionCont = document.getElementById('qrUbicacion');
-        const pasePie = document.getElementById('pasePie');
+        const filaUbicacionQr = document.getElementById('filaQrUbicacion');
         if (!qrContainer) {
             return;
         }
@@ -457,25 +479,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const pintar = function () {
             qrCodeInstance = new QRCode(qrContainer, {
                 text: String(ticketId),
-                width: 200,
-                height: 200,
+                width: QR_ENTRADA_PX,
+                height: QR_ENTRADA_PX,
                 colorDark: '#1a1a1a',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
             });
             const url = (ubicacionUrl || '').trim();
-            if (url && ubicacionCont && pasePie) {
-                pasePie.hidden = false;
+            if (url && ubicacionCont && filaUbicacionQr) {
+                filaUbicacionQr.hidden = false;
                 new QRCode(ubicacionCont, {
                     text: url,
-                    width: 128,
-                    height: 128,
+                    width: QR_UBICACION_PX,
+                    height: QR_UBICACION_PX,
                     colorDark: '#1a1a1a',
                     colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
+                    correctLevel: QRCode.CorrectLevel.L
                 });
-            } else if (pasePie) {
-                pasePie.hidden = true;
+            } else if (filaUbicacionQr) {
+                filaUbicacionQr.hidden = true;
             }
         };
 
@@ -555,10 +577,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (qrUb) {
             qrUb.innerHTML = '';
         }
-        const pasePie = document.getElementById('pasePie');
-        if (pasePie) {
-            pasePie.hidden = true;
+        const filaQrUbi = document.getElementById('filaQrUbicacion');
+        if (filaQrUbi) {
+            filaQrUbi.hidden = true;
         }
+        actualizarImagenPiePase('');
         cargarCatalogos();
     });
 });

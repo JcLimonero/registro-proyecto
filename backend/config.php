@@ -135,6 +135,9 @@ function createTable() {
                 'cartel_mime'    => 'VARCHAR(64) NULL',
                 'cartel_datos'   => 'MEDIUMBLOB NULL',
                 'es_principal'   => 'TINYINT(1) NOT NULL DEFAULT 0',
+                'pase_pie'       => 'VARCHAR(255) NULL',
+                'pase_pie_mime'  => 'VARCHAR(64) NULL',
+                'pase_pie_datos' => 'MEDIUMBLOB NULL',
             ] as $columna => $definicion) {
                 $stmtCol = $conn->prepare(
                     "SELECT COUNT(*) FROM information_schema.COLUMNS
@@ -187,7 +190,8 @@ function ahoraMexico() {
 function eventosVigentes(PDO $conn, $ahora = null) {
     $stmt = $conn->prepare(
         'SELECT id, nombre, fecha_inicio, fecha_fin, registro_inicio, registro_fin, ubicacion, cartel, es_principal,
-                (LENGTH(cartel_datos) > 0) AS tiene_cartel_blob FROM eventos
+                pase_pie, (LENGTH(cartel_datos) > 0) AS tiene_cartel_blob,
+                (LENGTH(pase_pie_datos) > 0) AS tiene_pase_pie_blob FROM eventos
          WHERE registro_inicio <= :ahora AND registro_fin >= :ahora2
          ORDER BY es_principal DESC, registro_inicio, id'
     );

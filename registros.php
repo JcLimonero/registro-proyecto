@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/backend/config.php';
 require_once __DIR__ . '/backend/cartel-evento.php';
+require_once __DIR__ . '/backend/pase-pie-evento.php';
 
 /** Columnas del Excel (todas). */
 const COLUMNAS_REGISTROS = [
@@ -410,6 +411,26 @@ function aplicarExtrasEvento(PDO $conn, array $post, array $files, $eventoId) {
         $stmt->bindValue(':id', $eventoId, PDO::PARAM_INT);
         $stmt->execute();
     }
+
+    $archivoPie = $files['pase_pie'] ?? [];
+    list($relPie, $errPie, $mimePie, $datosPie) = guardarPasePieEventoArchivo($archivoPie, $eventoId);
+    if ($errPie !== null) {
+        volverConMensaje('error', $errPie, 'eventos');
+    }
+    if ($relPie !== null && $datosPie !== null) {
+        $prevPie = $conn->prepare('SELECT pase_pie FROM eventos WHERE id = :id');
+        $prevPie->execute([':id' => $eventoId]);
+        $prevRutaPie = $prevPie->fetchColumn();
+        if ($prevRutaPie && $prevRutaPie !== $relPie) {
+            eliminarPasePieEventoArchivo($prevRutaPie);
+        }
+        $stmtPie = $conn->prepare('UPDATE eventos SET pase_pie = :c, pase_pie_mime = :m, pase_pie_datos = :d WHERE id = :id');
+        $stmtPie->bindValue(':c', $relPie, PDO::PARAM_STR);
+        $stmtPie->bindValue(':m', $mimePie, PDO::PARAM_STR);
+        $stmtPie->bindValue(':d', $datosPie, PDO::PARAM_LOB);
+        $stmtPie->bindValue(':id', $eventoId, PDO::PARAM_INT);
+        $stmtPie->execute();
+    }
 }
 
 function procesarCatalogo(PDO $conn, $accion, array $post, array $files = []) {
@@ -426,9 +447,11 @@ function procesarCatalogo(PDO $conn, $accion, array $post, array $files = []) {
                 if ($id === null) {
                     volverConMensaje('error', 'Evento no válido.', $vista);
                 }
-                $cartelStmt = $conn->prepare('SELECT cartel FROM eventos WHERE id = :id');
+                $cartelStmt = $conn->prepare('SELECT cartel, pase_pie FROM eventos WHERE id = :id');
                 $cartelStmt->execute([':id' => $id]);
-                $cartelRuta = $cartelStmt->fetchColumn();
+                $rowDel = $cartelStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+                $cartelRuta = $rowDel['cartel'] ?? null;
+                $pasePieRuta = $rowDel['pase_pie'] ?? null;
                 $conn->beginTransaction();
                 // Los registros viejos quedan sin evento (conservan todos sus datos)
                 $conn->prepare('UPDATE registros SET evento_id = NULL WHERE evento_id = :id')->execute([':id' => $id]);
@@ -437,6 +460,7 @@ function procesarCatalogo(PDO $conn, $accion, array $post, array $files = []) {
                 $conn->commit();
                 if ($stmt->rowCount()) {
                     eliminarCartelEventoArchivo($cartelRuta);
+                    eliminarPasePieEventoArchivo($pasePieRuta);
                 }
                 volverConMensaje($stmt->rowCount() ? 'ok' : 'error', $stmt->rowCount() ? 'Evento eliminado.' : 'El evento ya no existe.', $vista);
             }
@@ -632,6 +656,12 @@ function renderDialogoCatalogo($csrf, $pagina) {
                             <img id="dlg-cartel-prev" class="dlg-cartel-prev" alt="" hidden>
                         </div>
                         <div class="dlg-ancho">
+                            <label class="etiqueta sec" for="dlg-ev-pase-pie">Imagen inferior del pase QR (opcional)</label>
+                            <input type="file" name="pase_pie" id="dlg-ev-pase-pie" accept="image/jpeg,image/png,image/webp">
+                            <p class="dlg-ayuda sec">Aparece al pie del PNG al descargar el QR (mapa, indicaciones, etc.).</p>
+                            <img id="dlg-pase-pie-prev" class="dlg-cartel-prev" alt="" hidden>
+                        </div>
+                        <div class="dlg-ancho">
                             <label class="cat-check">
                                 <input type="checkbox" name="es_principal" value="1" id="dlg-ev-principal">
                                 Evento principal (cartel por defecto en el registro)
@@ -792,6 +822,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                 $i = (int) $f['id'];
                 $registroAbierto = ($f['registro_inicio'] ?? '') <= $ahora && ($f['registro_fin'] ?? '') >= $ahora;
                 $cartelPub = cartelUrlEvento($f);
+                $pasePiePub = pasePieUrlEvento($f);
                 $payload = [
                     'nombre' => $f['nombre'],
                     'fecha_inicio' => fechaDbALocal($f['fecha_inicio']),
@@ -801,6 +832,7 @@ function renderEventos(array $filas, $csrf, $ahora, array $pag) {
                     'ubicacion' => $f['ubicacion'] ?? '',
                     'es_principal' => !empty($f['es_principal']),
                     'cartel' => $cartelPub,
+                    'pase_pie' => $pasePiePub,
                 ];
                 $ubicacion = trim((string) ($f['ubicacion'] ?? ''));
             ?>
@@ -1052,7 +1084,9 @@ if ($autenticado && in_array($vista, ['agencias', 'areas', 'eventos'], true)) {
             createTable();
             if ($vista === 'eventos') {
                 $filas = $conn->query('SELECT e.id, e.nombre, e.fecha_inicio, e.fecha_fin, e.registro_inicio, e.registro_fin, e.ubicacion, e.cartel, e.es_principal,
+                        e.pase_pie,
                         (LENGTH(e.cartel_datos) > 0) AS tiene_cartel_blob,
+                        (LENGTH(e.pase_pie_datos) > 0) AS tiene_pase_pie_blob,
                         (SELECT COUNT(*) FROM registros r WHERE r.evento_id = e.id) AS usos
                     FROM eventos e ORDER BY e.fecha_inicio DESC, e.id DESC')->fetchAll(PDO::FETCH_ASSOC);
             } elseif ($vista === 'agencias') {
@@ -1496,6 +1530,7 @@ if ($autenticado && $vista === 'tabla') {
         }
         .dlg-ancho { grid-column: 1 / -1; width: 100%; }
         .dlg-cartel-prev { display: block; max-width: 140px; margin-top: 8px; border-radius: 6px; object-fit: cover; }
+        .dlg-ayuda { font-size: 12px; line-height: 1.4; margin: 6px 0 0; }
         .dialog-pie {
             display: flex;
             flex-wrap: wrap;
