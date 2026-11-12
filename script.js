@@ -221,8 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 datos.eventoFin = fechaLegible(result.fecha_fin);
                 datos.eventoUbicacion = result.ubicacion || '';
                 mostrarConfirmacion(datos);
-                
-                generarQR(idTicket);
+                generarQrs(idTicket, datos.eventoUbicacion || '');
                 
                 await enviarCorreo(datos);
             } else {
@@ -278,18 +277,60 @@ document.addEventListener('DOMContentLoaded', function() {
         togglePaginaConfirmacion(true);
     }
 
-    function generarQR(texto) {
+    function generarQrs(ticketId, ubicacionUrl) {
         const qrContainer = document.getElementById('qrCode');
+        const ubicacionCont = document.getElementById('qrUbicacion');
+        const filaUbicacionQr = document.getElementById('filaQrUbicacion');
+        if (!qrContainer) {
+            return;
+        }
         qrContainer.innerHTML = '';
-        
-        qrCodeInstance = new QRCode(qrContainer, {
-            text: texto,
-            width: 200,
-            height: 200,
-            colorDark: "#1a1a1a",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
+        if (ubicacionCont) {
+            ubicacionCont.innerHTML = '';
+        }
+
+        const pintar = function () {
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: String(ticketId),
+                width: 200,
+                height: 200,
+                colorDark: '#1a1a1a',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            const url = (ubicacionUrl || '').trim();
+            if (url && ubicacionCont && filaUbicacionQr) {
+                filaUbicacionQr.hidden = false;
+                new QRCode(ubicacionCont, {
+                    text: url,
+                    width: 88,
+                    height: 88,
+                    colorDark: '#1a1a1a',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } else if (filaUbicacionQr) {
+                filaUbicacionQr.hidden = true;
+            }
+        };
+
+        requestAnimationFrame(pintar);
+    }
+
+    function esperarImagenesQr(contenedor) {
+        const imgs = contenedor.querySelectorAll('img, canvas');
+        return Promise.all(Array.from(imgs).map(function (el) {
+            if (el.tagName === 'CANVAS') {
+                return Promise.resolve();
+            }
+            if (el.complete && el.naturalWidth > 0) {
+                return Promise.resolve();
+            }
+            return new Promise(function (resolve) {
+                el.onload = resolve;
+                el.onerror = resolve;
+            });
+        }));
     }
 
     async function enviarCorreo(datos) {
@@ -317,7 +358,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const evento = document.getElementById('confirmEvento').textContent;
         const nombre = 'QR-' + [evento, ticketId].filter(Boolean).join('-').replace(/[^\w.\-áéíóúñÁÉÍÓÚÑ]+/g, '_') + '.png';
 
-        html2canvas(pase, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => {
+        esperarImagenesQr(pase).then(function () {
+            return html2canvas(pase, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
+        }).then(function (canvas) {
             const link = document.createElement('a');
             link.download = nombre;
             link.href = canvas.toDataURL('image/png');
@@ -331,6 +379,14 @@ document.addEventListener('DOMContentLoaded', function() {
         formContainer.style.display = 'block';
         togglePaginaConfirmacion(false);
         document.getElementById('qrCode').innerHTML = '';
+        const qrUb = document.getElementById('qrUbicacion');
+        if (qrUb) {
+            qrUb.innerHTML = '';
+        }
+        const filaQrUbi = document.getElementById('filaQrUbicacion');
+        if (filaQrUbi) {
+            filaQrUbi.hidden = true;
+        }
         cargarCatalogos();
     });
 });

@@ -292,12 +292,38 @@ h1 {
 
 .qr-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 20px;
     margin-top: 16px;
     padding: 16px;
     background: #fff;
     border: 1px solid #adb5bd;
+}
+
+.qr-principal,
+.qr-ubicacion-bloque {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.qr-leyenda {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6c757d;
+}
+
+#qrUbicacion img,
+#qrUbicacion canvas {
+    width: 88px !important;
+    height: 88px !important;
 }
 
 /* El QR ocupa el ancho disponible (con tope para escritorio) */
